@@ -1,0 +1,30 @@
+{
+  "name": "govil-soft",
+  "version": "1.0.0",
+  "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "app",
+    "server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=app",
+    "start": "npm run start --workspace=server",
+    "stop": "pm2 stop $ID & pm2 delete $ID",
+    "deploy": "pm2 start ecosystem.config.js --env production",
+    "dev:app": "npm start --workspace=app",
+    "dev:server": "npm run dev --workspace=server",
+    "save": "git add . && git commit -m 'act'",
+    "push": "git push origin master",
+    "pull": "git pull origin master"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "excel4node": "^1.7.2",
+    "qrcode": "^1.5.0"
+  }
+}
