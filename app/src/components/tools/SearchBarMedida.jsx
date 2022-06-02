@@ -105,6 +105,7 @@ class SearchBarMedida extends React.Component {
             <div className="input-group-append">
               <button
                 className="input-group-text btn-outline-info btn-sm"
+                title="Agregar"
                 type="button"
                 onClick={() => {
                   this.props.onEventaAddItem();

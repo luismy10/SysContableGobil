@@ -94,16 +94,6 @@ router.post('/updatemedida', async function (req, res) {
     try {
         connection = await conec.beginTransaction();
 
-        let existe = await conec.execute(connection, 'SELECT nombre FROM medida');
-
-        for (let item of existe) {
-            if (item.nombre === req.body.nombre) {
-                await conec.rollback(connection);
-                res.status(400).send('Ya existe una medida con el mismo nombre');
-                return;
-            }
-        }
-
         await conec.execute(connection, `UPDATE medida SET 
             nombre=?, codigo=? WHERE idMedida=?`, [
             req.body.nombre,
@@ -112,7 +102,7 @@ router.post('/updatemedida', async function (req, res) {
         ]);
 
         await conec.commit(connection);
-        res.status(200).send('Datos insertados correctamente');
+        res.status(200).send('Datos actulizados correctamente');
     } catch (error) {
         if (connection != null) {
             await conec.rollback(connection);

@@ -53,6 +53,7 @@ class ProductoProceso extends React.Component {
 
             // Modal medida
             detalleMedidas: [],
+            idTempMedida: '',
             newNameMedida: '',
             codigoMedida: '',
             loadModalTable: false,
@@ -99,6 +100,7 @@ class ProductoProceso extends React.Component {
             this.abortControllerModal.abort();
             await this.setStateAsync({
                 detalleMedidas: [],
+                idTempMedida: '',
                 newNameMedida: '',
                 codigoMedida: '',
                 loadModalTable: false,
@@ -221,6 +223,7 @@ class ProductoProceso extends React.Component {
 
             await this.setStateAsync({
                 detalleMedidas: medida.data,
+                idTempMedida: '',
                 newNameMedida: '',
                 codigoMedida: '',
                 loadModalTable: false,
@@ -238,32 +241,6 @@ class ProductoProceso extends React.Component {
         }
     }
 
-    handleSelectNombre = async (event, idMedida) => {
-        const updateDetalleTabla = [...this.state.detalleMedidas];
-        for (let item of updateDetalleTabla) {
-            if (item.idMedida === idMedida) {
-                item.nombre = event.target.value;
-                break;
-            }
-        }
-        await this.setStateAsync({
-            detalleTabla: updateDetalleTabla,
-        })
-    }
-
-    handleSelectSimbolo = async (event, idMedida) => {
-        const updateDetalleTabla = [...this.state.detalleMedidas];
-        for (let item of updateDetalleTabla) {
-            if (item.idMedida === idMedida) {
-                item.codigo = event.target.value;
-                break;
-            }
-        }
-        await this.setStateAsync({
-            detalleTabla: updateDetalleTabla,
-        })
-    }
-
     async onEventEdit(event, id, nombre, codigo) {
         if (event.target.value === '') {
             await this.setStateAsync({
@@ -276,6 +253,7 @@ class ProductoProceso extends React.Component {
     }
 
     async onSaveMedida() {
+
         if (this.state.newNameMedida === '') {
             this.setState({ msgWarningModal: 'Ingrese el nombre.' })
             this.refNombreMedida.current.focus();
@@ -284,35 +262,27 @@ class ProductoProceso extends React.Component {
 
         try {
             ModalAlertInfo("Medida", "Procesando información...");
-            // hideModal("modalMedida");
 
-            // if (this.state.idAlmacen !== "") {
-            //     const almacen = await axios.post('/api/almacen/update', {
+            if (this.state.idTempMedida !== "") {
+                const editar = await axios.post('/api/producto/updatemedida', {
 
-            //         "idUbigeo": this.state.idUbigeo,
-            //         "idUsuario": this.props.token.userToken.idUsuario,
-            //         "nombre": this.state.nombre.trim().toUpperCase(),
-            //         "direccion": this.state.direccion.trim().toUpperCase(),
-            //         "tipo": parseInt(this.state.tipo),
-            //         "estado": this.state.estado,
+                    "nombre": this.state.newNameMedida.trim().toUpperCase(),
+                    "codigo": this.state.codigoMedida.trim().toUpperCase(),
+                    "idMedida": this.state.idTempMedida
 
-            //         "idAlmacen": this.state.idAlmacen
-
-            //     })
-            //     ModalAlertSuccess("Almacen", almacen.data, () => {
-            //         this.loadInit()
-            //     });
-            // } else {
-            const agregar = await axios.post("/api/producto/addmedida", {
-                "nombre": this.state.newNameMedida.trim().toUpperCase(),
-                "codigo": this.state.codigoMedida.trim().toUpperCase()
-            })
-            ModalAlertSuccess("Medida", agregar.data, () => {
-                // this.loadInit()
-                this.initLoadModal(0, "")
-
-            });
-            // }
+                })
+                ModalAlertSuccess("Medida", editar.data, () => {
+                    this.initLoadModal(0, "")
+                });
+            } else {
+                const agregar = await axios.post("/api/producto/addmedida", {
+                    "nombre": this.state.newNameMedida.trim().toUpperCase(),
+                    "codigo": this.state.codigoMedida.trim().toUpperCase()
+                })
+                ModalAlertSuccess("Medida", agregar.data, () => {
+                    this.initLoadModal(0, "")
+                });
+            }
 
         } catch (error) {
             if (error.response !== undefined) {
@@ -337,7 +307,7 @@ class ProductoProceso extends React.Component {
                     <div className="modal-dialog modal-md">
                         <div className="modal-content">
                             <div className="modal-header">
-                                <h5 className="modal-title">Nueva unida de medida</h5>
+                                <h5 className="modal-title">{this.state.idTempMedida === '' ? 'Nueva' : 'Editar'} unida de medida</h5>
                                 <button type="button" className="close" data-bs-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
@@ -387,16 +357,26 @@ class ProductoProceso extends React.Component {
                                                 placeholder="Ingrese el simbolo"
                                                 value={this.state.codigoMedida}
                                                 onChange={(event) => this.setState({ codigoMedida: event.target.value })} />
-                                            <button className="btn btn-outline-info btn-sm ml-1" title="Agregar" onClick={() => this.onSaveMedida()}>
-                                                <i className="bi bi-plus-circle"></i>
+                                            <button className={`btn btn-sm ml-1 ${this.state.idTempMedida === '' ? 'btn-outline-info' : 'btn-outline-warning'}`} title={this.state.idTempMedida === '' ? 'Agregar nueva medida' : 'Editar medida'} onClick={() => this.onSaveMedida()}>
+                                                {
+                                                    this.state.idTempMedida === '' ?
+                                                        <i className="bi bi-plus-circle"></i> :
+                                                        <i className="bi bi-pen-fill"></i>
+                                                }
                                             </button>
                                         </div>
                                     </div>
 
                                     {/* <div className="form-group col-md-12">
                                         <div className="text-center">
-                                            <button className="btn btn-outline-info btn-sm ml-1" title="Agregar" onClick={() => this.onSaveMedida()}>
-                                                <i className="bi bi-plus-circle"></i> Agregar
+                                            <button className={`btn btn-sm ml-1 ${this.state.idTempMedida === '' ? 'btn-outline-info' : 'btn-outline-warning'}`} title={this.state.idTempMedida === '' ? 'Agregar nueva medida' : 'Editar medida'} onClick={() => this.onSaveMedida()}>
+                                                {
+                                                    this.state.idTempMedida === '' ?
+                                                        <><i className="bi bi-plus-circle"></i> Nuevo</>
+                                                        :
+                                                        <><i className="bi bi-pen-fill"></i> Editar</>
+
+                                                }
                                             </button>
                                         </div>
                                     </div> */}
@@ -432,58 +412,29 @@ class ProductoProceso extends React.Component {
                                                     <th width="5%" className="p-1">#</th>
                                                     <th width="85%" className="p-1">Nombre </th>
                                                     <th width="10%" className="p-1">Simbolo</th>
-                                                    <th width="auto" className="text-center p-1">Editar</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {
                                                     this.state.loadModalTable ? (
                                                         <tr>
-                                                            <td className="text-center p-1" colSpan="4">
+                                                            <td className="text-center p-1" colSpan="3">
                                                                 {spinnerLoading(this.state.msgModalTable)}
                                                             </td>
                                                         </tr>
                                                     ) : this.state.detalleMedidas.length === 0 ? (
                                                         <tr className="text-center">
-                                                            <td className="p-1" colSpan="4">¡No hay datos registrados!</td>
+                                                            <td className="p-1" colSpan="3">¡No hay datos registrados!</td>
                                                         </tr>
                                                     ) :
 
                                                         (
                                                             this.state.detalleMedidas.map((item, index) => {
                                                                 return (
-                                                                    <tr key={item.idMedida} >
+                                                                    <tr key={item.idMedida} onClick={() => this.setState({ idTempMedida: item.idMedida, newNameMedida: item.nombre, codigoMedida: item.codigo })}>
                                                                         <td className="p-1">{++index}</td>
                                                                         <td className="p-1">{item.nombre}</td>
                                                                         <td className="p-1">{item.codigo}</td>
-
-                                                                        {/* <td className="p-1">
-                                                                            <input
-                                                                                type="text"
-                                                                                className="form-control form-control-sm"
-                                                                                placeholder="Ingrese el nombre"
-                                                                                maxLength={250}
-                                                                                id={index}
-                                                                                autoComplete="off"
-                                                                                value={item.nombre}
-                                                                                onChange={(event) => this.handleSelectNombre(event, item.idMedida)} />
-                                                                        </td> */}
-                                                                        {/* <td className="p-1">
-                                                                            <input
-                                                                                type="text"
-                                                                                className="form-control form-control-sm"
-                                                                                maxLength={250}
-                                                                                value={item.codigo}
-                                                                                onChange={(event) => this.handleSelectSimbolo(event, item.idMedida)} />
-                                                                        </td> */}
-                                                                        <td className="d-flex p-1">
-                                                                            <button
-                                                                                className="btn btn-outline-warning btn-sm"
-                                                                                title="Editar"
-                                                                                onClick={() => this.setState({ idMedida: item.idMedida, newNameMedida: item.nombre, codigoMedida: item.codigo })}>
-                                                                                <i className="bi bi-pencil"></i>
-                                                                            </button>
-                                                                        </td>
                                                                     </tr>
                                                                 )
                                                             })
@@ -529,7 +480,7 @@ class ProductoProceso extends React.Component {
 
                             <div className="row">
                                 <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                                    <label>Destino <i className="fa fa-asterisk text-danger small"></i></label>
+                                    <label>Destino</label>
                                 </div>
                                 <div className="col-md-4 col-sm-4">
                                     <button className={`btn ${this.state.destino === 1 ? "btn-primary" : "btn-light"} btn-block`}
