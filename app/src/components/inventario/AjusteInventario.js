@@ -9,12 +9,12 @@ import {
 } from '../tools/Tools';
 import Paginacion from '../tools/Paginacion';
 
-class Productos extends React.Component {
+class AjusteInventario extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
 
-            idProducto: '',
+            idAjusteInventario: '',
 
             lista: [],
             loading: false,
@@ -41,7 +41,7 @@ class Productos extends React.Component {
     }
 
     async componentDidMount() {
-        this.loadInit();
+        // this.loadInit();
     }
 
     componentWillUnmount() {
@@ -61,7 +61,7 @@ class Productos extends React.Component {
         try {
             await this.setStateAsync({ loading: true, lista: [], messageTable: "Cargando información...", messagePaginacion: "Mostranto 0 de 0 Páginas" });
 
-            const result = await axios.get('/api/producto/list', {
+            const result = await axios.get('/api/ajusteinventario/list', {
                 signal: this.abortControllerTable.signal,
                 params: {
                     "opcion": opcion,
@@ -121,20 +121,16 @@ class Productos extends React.Component {
         }
     }
 
-    onEventClone() {
-
-    }
-
     onEventAdd() {
         this.props.history.push({
             pathname: `${this.props.location.pathname}/proceso`
         })
     }
 
-    onEventEdit(idProducto) {
+    onEventEdit(idAjusteInventario) {
         this.props.history.push({
             pathname: `${this.props.location.pathname}/proceso`,
-            search: "?idProducto=" + idProducto
+            search: "?idAjusteInventario=" + idAjusteInventario
         })
     }
 
@@ -145,9 +141,9 @@ class Productos extends React.Component {
                 try {
                     ModalAlertInfo("Producto", "Procesando información...");
 
-                    let result = await axios.delete("/api/producto/delete", {
+                    let result = await axios.delete("/api/ajusteinventario/delete", {
                         params: {
-                            "idProducto": id
+                            "idAjusteInventario": id
                         }
                     })
 
@@ -172,7 +168,7 @@ class Productos extends React.Component {
                 <div className='row'>
                     <div className='col-lg-12 col-md-12 col-sm-12 col-xs-12'>
                         <div className="form-group">
-                            <h5>Productos <small className="text-secondary">LISTA</small></h5>
+                            <h5>Ajuste de Inventario <small className="text-secondary">LISTA</small></h5>
                         </div>
                     </div>
                 </div>
@@ -215,12 +211,10 @@ class Productos extends React.Component {
                                 <thead>
                                     <tr>
                                         <th width="5%" className="p-1">#</th>
-                                        <th width="35%" className="p-1">Descripción</th>
-                                        <th width="10%" className="p-1">Costo</th>
-                                        <th width="10%" className="p-1">Precio</th>
-                                        <th width="10%" className="p-1">Impuesto</th>
-                                        <th width="10%" className="p-1">Cantidad</th>
+                                        <th width="20%" className="p-1">Tipo Ajuste</th>
+                                        <th width="20%" className="p-1">Fecha</th>
                                         <th width="20%" className="p-1">Almacen</th>
+                                        <th width="35%" className="p-1">Observación</th>
                                         <th width="auto" className="text-center p-1">Acciones</th>
                                     </tr>
                                 </thead>
@@ -228,49 +222,50 @@ class Productos extends React.Component {
                                     {
                                         this.state.loading ? (
                                             <tr>
-                                                <td className="text-center p-1" colSpan="8">
+                                                <td className="text-center p-1" colSpan="6">
                                                     {spinnerLoading()}
                                                 </td>
                                             </tr>
                                         ) : this.state.lista.length === 0 ? (
                                             <tr className="text-center">
-                                                <td className="p-1" colSpan="8">¡No hay datos registrados!</td>
+                                                <td className="p-1" colSpan="6">¡No hay datos registrados!</td>
                                             </tr>
                                         ) :
 
                                             (
-                                                this.state.lista.map((item, index) => {
-                                                    return (
-                                                        <tr key={index} >
-                                                            <td className="p-1">{item.id}</td>
-                                                            <td className="p-1">
-                                                                {item.codigo}<br />
-                                                                {item.nombre}
-                                                            </td>
-                                                            <td className="p-1">{item.costo}</td>
-                                                            <td className="p-1">100</td>
-                                                            <td className="p-1">{item.impuesto}</td>
-                                                            <td className="p-1">{item.cantidad}<br />{item.medida}</td>
-                                                            <td className="p-1">{item.almacen}</td>
-                                                            <td className="p-1">
-                                                                <div className="d-flex">
-                                                                    <button
-                                                                        className="btn btn-outline-warning btn-sm"
-                                                                        title="Editar"
-                                                                        onClick={() => this.onEventEdit(item.idProducto)}>
-                                                                        <i className="bi bi-pencil"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn btn-outline-danger btn-sm ml-1"
-                                                                        title="Eliminar"
-                                                                        onClick={() => this.onEventDelete(item.idProducto)}>
-                                                                        <i className="bi bi-trash"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                })
+                                                null
+                                                // this.state.lista.map((item, index) => {
+                                                //     return (
+                                                //         <tr key={index} >
+                                                //             <td className="p-1">{item.id}</td>
+                                                //             <td className="p-1">
+                                                //                 {item.codigo}<br />
+                                                //                 {item.nombre}
+                                                //             </td>
+                                                //             <td className="p-1">{item.costo}</td>
+                                                //             <td className="p-1">100</td>
+                                                //             <td className="p-1">{item.impuesto}</td>
+                                                //             <td className="text-center p-1">{item.cantidad}<br />{item.medida}</td>
+                                                //             <td className="p-1">{item.almacen}</td>
+                                                //             <td className="p-1">
+                                                //                 <div className="d-flex">
+                                                //                     <button
+                                                //                         className="btn btn-outline-warning btn-sm"
+                                                //                         title="Editar"
+                                                //                         onClick={() => this.onEventEdit(item.idAjusteInventario)}>
+                                                //                         <i className="bi bi-pencil"></i>
+                                                //                     </button>
+                                                //                     <button
+                                                //                         className="btn btn-outline-danger btn-sm ml-1"
+                                                //                         title="Eliminar"
+                                                //                         onClick={() => this.onEventDelete(item.idAjusteInventario)}>
+                                                //                         <i className="bi bi-trash"></i>
+                                                //                     </button>
+                                                //                 </div>
+                                                //             </td>
+                                                //         </tr>
+                                                //     )
+                                                // })
                                             )
                                     }
                                 </tbody>
@@ -304,5 +299,5 @@ class Productos extends React.Component {
 }
 
 
-export default Productos;
+export default AjusteInventario;
 

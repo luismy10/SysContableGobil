@@ -581,19 +581,21 @@ class Almacenes extends React.Component {
                                                                     {item.estado === 1 ? "ACTIVO" : "INACTIVO"}
                                                                 </div>
                                                             </td>
-                                                            <td className="d-flex p-1">
-                                                                <button
-                                                                    className="btn btn-outline-warning btn-sm"
-                                                                    title="Editar"
-                                                                    onClick={() => this.openModal(item.idAlmacen, 'editar')}>
-                                                                    <i className="bi bi-pencil"></i>
-                                                                </button>
-                                                                <button
-                                                                    className="btn btn-outline-danger btn-sm ml-1"
-                                                                    title="Eliminar"
-                                                                    onClick={() => this.onDelete(item.idAlmacen)}>
-                                                                    <i className="bi bi-trash"></i>
-                                                                </button>
+                                                            <td className="p-1">
+                                                                <div className="d-flex">
+                                                                    <button
+                                                                        className="btn btn-outline-warning btn-sm"
+                                                                        title="Editar"
+                                                                        onClick={() => this.openModal(item.idAlmacen, 'editar')}>
+                                                                        <i className="bi bi-pencil"></i>
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-outline-danger btn-sm ml-1"
+                                                                        title="Eliminar"
+                                                                        onClick={() => this.onDelete(item.idAlmacen)}>
+                                                                        <i className="bi bi-trash"></i>
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     )

@@ -25,7 +25,7 @@ class ProductoProceso extends React.Component {
             idProducto: '',
 
             destino: 1,
-            tipo: '',
+            tipo: '1',
             codigo: '',
             nombre: '',
 
@@ -36,9 +36,12 @@ class ProductoProceso extends React.Component {
 
             idAlmacen: '',
             almacenes: [],
-            almacenesOtros: [],
-
             costo: '',
+
+            idAlmacenSuminitro: '',
+            almacenesSuministro: [],
+            costoSuministro: '',
+
             idImpuesto: '',
             impuestos: [],
             precio: '',
@@ -61,9 +64,17 @@ class ProductoProceso extends React.Component {
             msgWarningModal: '',
         }
 
+        this.refNombre = React.createRef()
         this.refMedida = React.createRef()
-        this.refNombreMedida = React.createRef()
+        this.refAlmacen = React.createRef()
+        this.refCosto = React.createRef()
+        this.refImpuesto = React.createRef()
+        this.refPrecio = React.createRef()
 
+        this.refAlmacenSuministro = React.createRef()
+        this.refCostoSuministro = React.createRef()
+
+        this.refNewNameMedida = React.createRef()
         this.refSearchMedida = React.createRef()
 
         this.abortControllerView = new AbortController();
@@ -133,7 +144,7 @@ class ProductoProceso extends React.Component {
 
             await this.setStateAsync({
                 almacenes: almacenVenta.data,
-                almacenesOtros: almacenProdConsumo.data,
+                almacenesSuministro: almacenProdConsumo.data,
                 impuestos: impuesto.data,
                 loading: false
             })
@@ -149,11 +160,58 @@ class ProductoProceso extends React.Component {
     loadDataId = async (id) => {
         try {
 
+            const producto = await axios.get("/api/producto/id", {
+                signal: this.abortControllerView.signal,
+                params: {
+                    "idProducto": id
+                }
+            });
+
+            const data = producto.data;
+
+            const almacenVenta = await axios.get("/api/almacen/listcomboventa", {
+                signal: this.abortControllerView.signal,
+            });
+
+            const almacenProdConsumo = await axios.get("/api/almacen/listcomboprodconsumo", {
+                signal: this.abortControllerView.signal,
+            });
+
+            const impuesto = await axios.get("/api/impuesto/listcombo", {
+                signal: this.abortControllerView.signal,
+            });
+
             await this.setStateAsync({
+                almacenes: almacenVenta.data,
+                almacenesSuministro: almacenProdConsumo.data,
+                impuestos: impuesto.data,
+
+                idProducto: data.idProducto,
+
+                idAlmacen: data.destino === 1 ? data.idAlmacen : '',
+                idAlmacenSuminitro: data.destino === 2 ? data.idAlmacen : '',
+
+                idImpuesto: data.idImpuesto,
+                idMedida: data.idMedida,
+                nombreMedida: data.medida,
+
+                destino: data.destino,
+                tipo: (data.tipo).toString(),
+                codigo: data.codigo,
+                nombre: data.nombre,
+
+                costo: data.destino === 1 ? data.costo : '',
+                costoSuministro: data.destino === 2 ? data.costo : '',
+
+                estado: data.estado,
+                idCategoria: data.categoria,
+                idMarca: data.marca,
+                descripcion: data.descripcion,
+
                 loading: false
             })
 
-            // this.selectItem = true;
+            this.selectItem = true;
 
         } catch (error) {
             if (error.message !== "canceled") {
@@ -178,7 +236,7 @@ class ProductoProceso extends React.Component {
 
         try {
             await this.setStateAsync({ filter: true });
-            let result = await axios.get("/api/producto/listcombomedida", {
+            let result = await axios.get("/api/producto/listfiltermedida", {
                 params: {
                     filtrar: searchWord,
                 },
@@ -192,6 +250,7 @@ class ProductoProceso extends React.Component {
     onEventSelectItem = async (value) => {
 
         await this.setStateAsync({
+            // nombreMedida: value.nombre +' '+ value.codigo,
             nombreMedida: value.nombre,
             filteredData: [],
             idMedida: value.idMedida
@@ -204,7 +263,7 @@ class ProductoProceso extends React.Component {
         this.selectItem = false;
     }
 
-    onEventaAddItem() {
+    onEventAddItem() {
         showModal('modalMedida')
     }
 
@@ -241,22 +300,11 @@ class ProductoProceso extends React.Component {
         }
     }
 
-    async onEventEdit(event, id, nombre, codigo) {
-        if (event.target.value === '') {
-            await this.setStateAsync({
-                msgWarningModal: 'Ingrese el nombre.'
-            })
-        } else {
-
-        }
-
-    }
-
     async onSaveMedida() {
 
         if (this.state.newNameMedida === '') {
             this.setState({ msgWarningModal: 'Ingrese el nombre.' })
-            this.refNombreMedida.current.focus();
+            this.refNewNameMedida.current.focus();
             return;
         }
 
@@ -265,11 +313,9 @@ class ProductoProceso extends React.Component {
 
             if (this.state.idTempMedida !== "") {
                 const editar = await axios.post('/api/producto/updatemedida', {
-
                     "nombre": this.state.newNameMedida.trim().toUpperCase(),
                     "codigo": this.state.codigoMedida.trim().toUpperCase(),
                     "idMedida": this.state.idTempMedida
-
                 })
                 ModalAlertSuccess("Medida", editar.data, () => {
                     this.initLoadModal(0, "")
@@ -296,6 +342,174 @@ class ProductoProceso extends React.Component {
 
     searchText = async (text) => {
         this.initLoadModal(1, text)
+    }
+
+    onEventGuardar() {
+        if (this.state.destino === 1) {
+            this.prodVenta()
+        } else {
+            this.prodProduccionConsumo()
+        }
+
+    }
+
+    async prodVenta() {
+        if (this.state.nombre === '') {
+            this.setState({ messageWarning: 'Ingrese el nombre del producto.' })
+            this.refNombre.current.focus()
+        } else if (this.state.idMedida === '') {
+            this.setState({ messageWarning: 'Elija la unidad de medida.' })
+            this.refMedida.current.focus()
+        } else if (this.state.idAlmacen === '' && this.state.tipo === '1') {
+            this.setState({ messageWarning: 'Seleccione el almacen.' })
+            this.refAlmacen.current.focus()
+        } else if (this.state.costo === '' && this.state.tipo === '1') {
+            this.setState({ messageWarning: 'Ingrese el costo del producto.' })
+            this.refCosto.current.focus()
+        } else if (this.state.idImpuesto === '') {
+            this.setState({ messageWarning: 'Seleccione el impuesto.' })
+            this.refImpuesto.current.focus()
+        } else if (this.state.precio === '') {
+            this.setState({ messageWarning: 'Ingrese el precio del producto.' })
+            this.refPrecio.current.focus()
+        } else {
+            
+            try {
+                ModalAlertInfo("Producto", "Procesando información...");
+
+                let result = '';
+
+                if(this.state.idProducto !== ''){
+                    result = await axios.post("/api/producto/update", {
+                        "destino": this.state.destino,
+                        "tipo": parseInt(this.state.tipo),
+                        "codigo": this.state.codigo.trim().toUpperCase(),
+                        "nombre": this.state.nombre.trim().toUpperCase(),
+                        "idMedida": this.state.idMedida,
+    
+                        "idAlmacen": this.state.tipo === '1' ? this.state.idAlmacen : '',
+                        "costo": this.state.tipo === '1' ? parseFloat(this.state.costo) : 0,
+    
+                        "idImpuesto": this.state.idImpuesto,
+                        "precio": parseFloat(this.state.precio),
+                        "estado": this.state.estado,
+                        "categoria": this.state.idCategoria,
+                        "marca": this.state.idMarca,
+                        "descripcion": this.state.descripcion.trim().toUpperCase(),
+
+                        "idProducto": this.state.idProducto
+                    });
+                } else{
+                    result = await axios.post("/api/producto/add", {
+                        "destino": this.state.destino,
+                        "tipo": parseInt(this.state.tipo),
+                        "codigo": this.state.codigo.trim().toUpperCase(),
+                        "nombre": this.state.nombre.trim().toUpperCase(),
+                        "idMedida": this.state.idMedida,
+    
+                        "idAlmacen": this.state.tipo === '1' ? this.state.idAlmacen : '',
+                        "costo": this.state.tipo === '1' ? parseFloat(this.state.costo) : 0,
+    
+                        "idImpuesto": this.state.idImpuesto,
+                        "precio": parseFloat(this.state.precio),
+                        "estado": this.state.estado,
+                        "categoria": this.state.idCategoria,
+                        "marca": this.state.idMarca,
+                        "descripcion": this.state.descripcion.trim().toUpperCase()
+                    });
+                }
+                
+                ModalAlertSuccess("Producto", result.data, () => {
+                    this.props.history.goBack()
+                });
+
+            } catch (error) {
+                if (error.response !== undefined) {
+                    ModalAlertWarning("Producto", error.response.data)
+                } else {
+                    ModalAlertWarning("Producto", "Se genero un error interno, intente nuevamente.")
+                }
+            }
+        }
+    }
+
+    async prodProduccionConsumo() {
+        if (this.state.nombre === '') {
+            this.setState({ messageWarning: 'Ingrese el nombre del producto.' })
+            this.refNombre.current.focus()
+        } else if (this.state.idMedida === '') {
+            this.setState({ messageWarning: 'Elija la unidad de medida.' })
+            this.refMedida.current.focus()
+        } else if (this.state.idAlmacenSuminitro === '') {
+            this.setState({ messageWarning: 'Seleccione el almacen.' })
+            this.refAlmacenSuministro.current.focus()
+        } else if (this.state.costoSuministro === '') {
+            this.setState({ messageWarning: 'Ingrese el costo del producto.' })
+            this.refCostoSuministro.current.focus()
+        } else if (this.state.idImpuesto === '') {
+            this.setState({ messageWarning: 'Seleccione el impuesto.' })
+            this.refImpuesto.current.focus()
+        } else {
+            try {
+                ModalAlertInfo("Producto", "Procesando información...");
+
+                let result = null;
+
+                if(this.state.idProducto !== ""){
+                    result = await axios.post("/api/producto/update", {
+                        "destino": this.state.destino,
+                        "tipo": 0,
+                        "codigo": this.state.codigo.trim().toUpperCase(),
+                        "nombre": this.state.nombre.trim().toUpperCase(),
+                        "idMedida": this.state.idMedida,
+    
+                        "idAlmacen": this.state.idAlmacenSuminitro,
+                        "costo": parseFloat(this.state.costoSuministro),
+    
+                        "idImpuesto": this.state.idImpuesto,
+                        "precio": 0,
+                        "estado": this.state.estado,
+                        "categoria": this.state.idCategoria,
+                        "marca": this.state.idMarca,
+                        "descripcion": this.state.descripcion.trim().toUpperCase(),
+
+                        "idProducto": this.state.idProducto
+    
+                    });
+                } else{
+                    result = await axios.post("/api/producto/add", {
+                        "destino": this.state.destino,
+                        "tipo": 0,
+                        "codigo": this.state.codigo.trim().toUpperCase(),
+                        "nombre": this.state.nombre.trim().toUpperCase(),
+                        "idMedida": this.state.idMedida,
+    
+                        "idAlmacen": this.state.idAlmacenSuminitro,
+                        "costo": parseFloat(this.state.costoSuministro),
+    
+                        "idImpuesto": this.state.idImpuesto,
+                        "precio": 0,
+                        "estado": this.state.estado,
+                        "categoria": this.state.idCategoria,
+                        "marca": this.state.idMarca,
+                        "descripcion": this.state.descripcion.trim().toUpperCase()
+                    });
+                }
+                
+                ModalAlertSuccess("Producto", result.data, () => {
+                    this.props.history.goBack()
+                });
+
+            } catch (error) {
+                if (error.response !== undefined) {
+                    ModalAlertWarning("Producto", error.response.data)
+                } else {
+                    ModalAlertWarning("Producto", "Se genero un error interno, intente nuevamente.")
+                }
+
+            }
+        }
+
     }
 
     render() {
@@ -331,7 +545,7 @@ class ProductoProceso extends React.Component {
                                                 className="form-control"
                                                 placeholder="Ingrese el nombre"
                                                 maxLength={250}
-                                                ref={this.refNombreMedida}
+                                                ref={this.refNewNameMedida}
                                                 value={this.state.newNameMedida}
                                                 onChange={async (event) => {
                                                     if (event.target.value.trim().length > 0) {
@@ -464,7 +678,7 @@ class ProductoProceso extends React.Component {
                                 <div className='col-lg-12 col-md-12 col-sm-12 col-xs-12'>
                                     <section className="content-header">
                                         <h5>
-                                            <span role="button" onClick={() => this.props.history.goBack()}><i className="bi bi-arrow-left-short"></i></span> {this.state.idProducto === '' ? 'Registrar ' : 'Editar '} Producto
+                                            <span role="button" onClick={() => this.props.history.goBack()}><i className="bi bi-arrow-left-short"></i></span> {this.state.idProducto === '' ? 'Nuevo ' : 'Editar '} producto
                                         </h5>
                                     </section>
                                 </div>
@@ -477,6 +691,11 @@ class ProductoProceso extends React.Component {
                                     </div>
                             }
 
+                            <hr className="mt-0 mb-2"/>
+
+                            <div className="mb-3">
+                                <span className="text-info">Recuerda que al mover el producto a otro almacen, este se movera con sus cantidades.</span>
+                            </div>
 
                             <div className="row">
                                 <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
@@ -513,11 +732,10 @@ class ProductoProceso extends React.Component {
 
                                             <div className="form-row">
                                                 <div className="form-group col-md-6">
-                                                    <label>Tipo <i className="fa fa-asterisk text-danger small"></i></label>
+                                                    <label>Tipo</label>
                                                     <div className="input-group input-group-sm">
                                                         <select
                                                             className="form-control"
-                                                            ref={this.refTipo}
                                                             value={this.state.tipo}
                                                             onChange={async (event) => {
                                                                 if (event.target.value.trim().length > 0) {
@@ -544,20 +762,8 @@ class ProductoProceso extends React.Component {
                                                                         });
                                                                     }
 
-                                                                } else {
-                                                                    await this.setStateAsync({
-                                                                        tipo: event.target.value,
-                                                                        idMedida: '',
-                                                                        nombreMedida: '',
-                                                                        idAlmacen: '',
-                                                                        costo: '',
-                                                                        messageWarning: 'Seleccione el tipo para el producto.',
-                                                                    });
-
-
                                                                 }
                                                             }} >
-                                                            <option value="">-- Seleccione --</option>
                                                             <option value="1">PRODUCTOS</option>
                                                             <option value="2">SERVICIO</option>
                                                         </select>
@@ -621,82 +827,80 @@ class ProductoProceso extends React.Component {
                                                         onEventClearInput={this.onEventClearInput}
                                                         handleFilter={this.handleFilter}
                                                         onEventSelectItem={this.onEventSelectItem}
-                                                        onEventaAddItem={this.onEventaAddItem}
+                                                        onEventAddItem={this.onEventAddItem}
                                                     />
                                                 </div>
 
                                             </div>
 
-                                            {
-                                                this.state.tipo === '1' ?
-                                                    <div className="form-row">
 
-                                                        <div className="form-group col-md-6">
-                                                            <label>Almacen <i className="fa fa-asterisk text-danger small"></i></label>
-                                                            <div className="input-group input-group-sm">
-                                                                <select
-                                                                    className="form-control"
-                                                                    disabled={this.state.tipo === '1' ? false : true}
-                                                                    ref={this.refAlmacen}
-                                                                    value={this.state.idAlmacen}
-                                                                    onChange={async (event) => {
+                                            <div className="form-row">
 
-                                                                        if (event.target.value.trim().length > 0) {
-                                                                            await this.setStateAsync({
-                                                                                idAlmacen: event.target.value,
-                                                                                messageWarning: '',
-                                                                            });
+                                                <div className="form-group col-md-6">
+                                                    <label>Almacen <i className="fa fa-asterisk text-danger small"></i></label>
+                                                    <div className="input-group input-group-sm">
+                                                        <select
+                                                            className="form-control"
+                                                            disabled={this.state.tipo === '1' ? false : true}
+                                                            ref={this.refAlmacen}
+                                                            value={this.state.idAlmacen}
+                                                            onChange={async (event) => {
 
-                                                                        } else {
-                                                                            await this.setStateAsync({
-                                                                                idAlmacen: event.target.value,
-                                                                                messageWarning: 'Seleccione el almacen.',
-                                                                            });
-                                                                        }
-                                                                    }} >
-                                                                    <option value="">-- Seleccione --</option>
-                                                                    {
-                                                                        this.state.almacenes.map((item, index) => {
-                                                                            let tipo = item.tipo === 1 ? 'PRODUCTOS TERMINADOS'
-                                                                                : item.tipo === 2 ? 'MATERIAS PRIMAS'
-                                                                                    : item.tipo === 3 ? 'REPUESTOS Y/O ACCESORIOS' : ''
-                                                                            return <option key={index} value={item.idAlmacen}>{item.nombre + ' - ' + tipo}</option>
-                                                                        })
-                                                                    }
-                                                                </select>
-                                                            </div>
-                                                        </div>
+                                                                if (event.target.value.trim().length > 0) {
+                                                                    await this.setStateAsync({
+                                                                        idAlmacen: event.target.value,
+                                                                        messageWarning: '',
+                                                                    });
 
-                                                        <div className="form-group col-md-6">
-                                                            <label>Costo <i className="fa fa-asterisk text-danger small"></i></label>
-                                                            <div className="input-group input-group-sm">
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-control"
-                                                                    placeholder="Ingrese el costo del producto"
-                                                                    disabled={this.state.tipo === '1' ? false : true}
-                                                                    ref={this.refCosto}
-                                                                    value={this.state.costo}
-                                                                    onChange={(event) => {
-                                                                        if (event.target.value.trim().length > 0) {
-                                                                            this.setState({
-                                                                                costo: event.target.value,
-                                                                                messageWarning: '',
-                                                                            });
-                                                                        } else {
-                                                                            this.setState({
-                                                                                costo: event.target.value,
-                                                                                messageWarning: 'Ingrese el costo del producto.',
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                    onKeyPress={keyNumberFloat} />
-                                                            </div>
-                                                        </div>
-
+                                                                } else {
+                                                                    await this.setStateAsync({
+                                                                        idAlmacen: event.target.value,
+                                                                        messageWarning: 'Seleccione el almacen.',
+                                                                    });
+                                                                }
+                                                            }} >
+                                                            <option value="">-- Seleccione --</option>
+                                                            {
+                                                                this.state.almacenes.map((item, index) => {
+                                                                    let tipo = item.tipo === 1 ? 'PRODUCTOS TERMINADOS'
+                                                                        : item.tipo === 2 ? 'MATERIAS PRIMAS'
+                                                                            : item.tipo === 3 ? 'REPUESTOS Y/O ACCESORIOS' : ''
+                                                                    return <option key={index} value={item.idAlmacen}>{item.nombre + ' - ' + tipo}</option>
+                                                                })
+                                                            }
+                                                        </select>
                                                     </div>
-                                                    : null
-                                            }
+                                                </div>
+
+                                                <div className="form-group col-md-6">
+                                                    <label>Costo <i className="fa fa-asterisk text-danger small"></i></label>
+                                                    <div className="input-group input-group-sm">
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            placeholder="Ingrese el costo del producto"
+                                                            disabled={this.state.tipo === '1' ? false : true}
+                                                            ref={this.refCosto}
+                                                            value={this.state.costo}
+                                                            onChange={(event) => {
+                                                                if (event.target.value.trim().length > 0) {
+                                                                    this.setState({
+                                                                        costo: event.target.value,
+                                                                        messageWarning: '',
+                                                                    });
+                                                                } else {
+                                                                    this.setState({
+                                                                        costo: event.target.value,
+                                                                        messageWarning: 'Ingrese el costo del producto.',
+                                                                    });
+                                                                }
+                                                            }}
+                                                            onKeyPress={keyNumberFloat} />
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
 
                                             <div className="form-row">
 
@@ -884,6 +1088,19 @@ class ProductoProceso extends React.Component {
                                                             }} />
                                                     </div>
                                                 </div>
+                                                <div className="form-group col-md-4">
+                                                    <label>Unidad de medida <i className="fa fa-asterisk text-danger small"></i></label>
+                                                    <SearchBarMedida
+                                                        placeholder="Escribe el nombre para filtrar..."
+                                                        refMedida={this.refMedida}
+                                                        nombreMedida={this.state.nombreMedida}
+                                                        filteredData={this.state.filteredData}
+                                                        onEventClearInput={this.onEventClearInput}
+                                                        handleFilter={this.handleFilter}
+                                                        onEventSelectItem={this.onEventSelectItem}
+                                                        onEventAddItem={this.onEventAddItem}
+                                                    />
+                                                </div>
 
                                             </div>
 
@@ -894,27 +1111,32 @@ class ProductoProceso extends React.Component {
                                                     <div className="input-group input-group-sm">
                                                         <select
                                                             className="form-control"
-                                                            disabled={this.state.tipo === '1' ? false : true}
-                                                            ref={this.refAlmacen}
-                                                            value={this.state.idAlmacen}
+                                                            ref={this.refAlmacenSuministro}
+                                                            value={this.state.idAlmacenSuminitro}
                                                             onChange={async (event) => {
 
                                                                 if (event.target.value.trim().length > 0) {
                                                                     await this.setStateAsync({
-                                                                        idAlmacen: event.target.value,
+                                                                        idAlmacenSuminitro: event.target.value,
                                                                         messageWarning: '',
                                                                     });
 
                                                                 } else {
                                                                     await this.setStateAsync({
-                                                                        idAlmacen: event.target.value,
+                                                                        idAlmacenSuminitro: event.target.value,
                                                                         messageWarning: 'Seleccione el almacen.',
                                                                     });
                                                                 }
                                                             }} >
                                                             <option value="">-- Seleccione --</option>
-                                                            <option value="1">Almacen 1</option>
-                                                            <option value="2">Almacen 2</option>
+                                                            {
+                                                                this.state.almacenesSuministro.map((item, index) => {
+                                                                    let tipo = item.tipo === 1 ? 'PRODUCTOS TERMINADOS'
+                                                                        : item.tipo === 2 ? 'MATERIAS PRIMAS'
+                                                                            : item.tipo === 3 ? ' REPUESTOS Y/O ACCESORIOS' : ''
+                                                                    return <option key={index} value={item.idAlmacen}>{item.nombre + ' - ' + tipo}</option>
+                                                                })
+                                                            }
                                                         </select>
                                                     </div>
                                                 </div>
@@ -926,18 +1148,17 @@ class ProductoProceso extends React.Component {
                                                             type="text"
                                                             className="form-control"
                                                             placeholder="Ingrese el costo del producto"
-                                                            disabled={this.state.tipo === '1' ? false : true}
-                                                            ref={this.refCosto}
-                                                            value={this.state.costo}
+                                                            ref={this.refCostoSuministro}
+                                                            value={this.state.costoSuministro}
                                                             onChange={(event) => {
                                                                 if (event.target.value.trim().length > 0) {
                                                                     this.setState({
-                                                                        costo: event.target.value,
+                                                                        costoSuministro: event.target.value,
                                                                         messageWarning: '',
                                                                     });
                                                                 } else {
                                                                     this.setState({
-                                                                        costo: event.target.value,
+                                                                        costoSuministro: event.target.value,
                                                                         messageWarning: 'Ingrese el costo del producto.',
                                                                     });
                                                                 }

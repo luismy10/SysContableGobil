@@ -115,7 +115,6 @@ class VentaProceso extends React.Component {
         this.abortControllerView.abort();
     }
 
-
     loadData = async () => {
         try {
 

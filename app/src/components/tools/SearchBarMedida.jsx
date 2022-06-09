@@ -108,7 +108,7 @@ class SearchBarMedida extends React.Component {
                 title="Agregar"
                 type="button"
                 onClick={() => {
-                  this.props.onEventaAddItem();
+                  this.props.onEventAddItem();
                 }}
               >
                 <i className="bi bi-plus"></i>

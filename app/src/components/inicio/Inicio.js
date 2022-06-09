@@ -60,9 +60,11 @@ import RepMovimientoCuentaContable from '../contabilidad/reportes/RepMovimientoC
 import RepDiferinciaCambioBanco from '../contabilidad/reportes/RepDiferinciaCambioBanco';
 import RepAuxiliarTercero from '../contabilidad/reportes/RepAuxiliarTercero';
 
-import Almacenes from '../inventario/Almacenes'
-import Productos from '../inventario/Productos'
-import ProductoProceso from '../inventario/registros/ProductoProceso'
+import Almacenes from '../inventario/Almacenes';
+import Productos from '../inventario/Productos';
+import ProductoProceso from '../inventario/registros/ProductoProceso';
+import AjusteInventario from '../inventario/AjusteInventario';
+import AjusteInventarioProceso from '../inventario/registros/AjusteInventarioProceso';
 
 const Page404 = (props) => {
     return (
@@ -436,6 +438,16 @@ class Inicio extends React.Component {
                                     path={`${path}/producto/proceso`}
                                     exact={true}
                                     render={(props) => <ProductoProceso {...props} />}
+                                />
+                                <Route
+                                    path={`${path}/ajusteinventario`}
+                                    exact={true}
+                                    render={(props) => <AjusteInventario {...props} />}
+                                />
+                                <Route
+                                    path={`${path}/ajusteinventario/proceso`}
+                                    exact={true}
+                                    render={(props) => <AjusteInventarioProceso {...props} />}
                                 />
 
 
