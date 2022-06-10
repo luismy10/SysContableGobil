@@ -2,8 +2,10 @@ import React from 'react';
 import axios from 'axios';
 import {
     currentDate,
+    isNumeric,
     keyNumberFloat,
     spinnerLoading,
+    ModalAlertDialog,
     ModalAlertInfo,
     ModalAlertSuccess,
     ModalAlertWarning,
@@ -12,13 +14,13 @@ import {
     clearModal
 } from '../../tools/Tools';
 import Paginacion from '../../tools/Paginacion';
+import { connect } from 'react-redux';
 
 class AjusteInventarioProceso extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
 
-            correlativo: 1,
             fecha: currentDate(),
 
             idAlmacen: '',
@@ -27,6 +29,7 @@ class AjusteInventarioProceso extends React.Component {
 
             observacion: '',
             detalleTabla: [],
+            importeTotal: 0,
 
             loading: false,
 
@@ -191,20 +194,31 @@ class AjusteInventarioProceso extends React.Component {
         if (!this.validarDuplicado(producto.idProducto)) {
             let detalle = {
                 "idProducto": producto.idProducto,
-                "codigoProducto": producto.idProducto,
+                "codigoProducto": producto.codigo,
                 "nombreProducto": producto.nombre,
-                "cantidadActual": producto.cantidad,
+                "cantidadActual": parseFloat(producto.cantidad),
                 "tipoAjuste": '1',
                 "cantidad": 1,
-                "costo": producto.costo,
-                "cantidadFinal": ''
+                "costo": parseFloat(producto.costo),
+                "cantidadFinal": parseFloat(producto.cantidad) + 1,
+                "totalAjuste": parseFloat(producto.costo) * 1
             }
             this.state.detalleTabla.push(detalle)
         } else {
             for (let item of this.state.detalleTabla) {
                 if (item.idProducto === producto.idProducto) {
                     let currenteObject = item;
+
                     currenteObject.cantidad = parseFloat(currenteObject.cantidad) + 1;
+
+                    currenteObject.cantidadFinal = currenteObject.tipoAjuste === '1' ?
+                        parseFloat(currenteObject.cantidadActual) + parseFloat(currenteObject.cantidad)
+                        : parseFloat(currenteObject.cantidadActual) - parseFloat(currenteObject.cantidad);
+                    
+                    currenteObject.totalAjuste = currenteObject.tipoAjuste === '1' ?
+                        parseFloat(currenteObject.costo) * parseFloat(currenteObject.cantidad)
+                        : parseFloat(currenteObject.costo) * parseFloat(-currenteObject.cantidad);
+
                     break;
                 }
             }
@@ -213,15 +227,23 @@ class AjusteInventarioProceso extends React.Component {
         let newArr = [...this.state.detalleTabla]
 
         await this.setStateAsync({
-            detalleTabla: newArr
+            detalleTabla: newArr,
+            messageWarning: ''
         });
 
-        // const { total } = this.calcularTotales();
+        const { total } = this.calculateTotals();
 
-        // await this.setStateAsync({
-        //     importeTotal: total
-        // });
+        await this.setStateAsync({
+            importeTotal: total
+        });
+    }
 
+    calculateTotals() {
+        let total = 0;
+        for (let item of this.state.detalleTabla) {
+            total = total + item.totalAjuste
+        }
+        return { total }
     }
 
     validarDuplicado(id) {
@@ -247,14 +269,14 @@ class AjusteInventarioProceso extends React.Component {
         }
 
         await this.setStateAsync({
-            detalleTabla: newArr,
+            detalleTabla: newArr
         })
 
-        // const { total } = this.calcularTotales();
+        const { total } = this.calculateTotals();
 
-        // await this.setStateAsync({
-        //     importeTotal: total
-        // })
+        await this.setStateAsync({
+            importeTotal: total
+        });
     }
 
     handleSelectTipoAjuste = async (event, idProducto) => {
@@ -262,33 +284,122 @@ class AjusteInventarioProceso extends React.Component {
         for (let item of updatedList) {
             if (item.idProducto === idProducto) {
                 item.tipoAjuste = event.target.value;
+
+                if (isNumeric(item.cantidad.toString())) {
+                    item.cantidadFinal = event.target.value === '1' ?
+                        parseFloat(item.cantidadActual) + parseFloat(item.cantidad)
+                        : parseFloat(item.cantidadActual) - parseFloat(item.cantidad);
+                    item.totalAjuste = event.target.value === '1' ?
+                        parseFloat(item.costo) * parseFloat(item.cantidad)
+                        : parseFloat(item.costo) * parseFloat(-item.cantidad)
+                }
                 break;
             }
         }
+        await this.setStateAsync({ detalleTabla: updatedList, messageWarning: ''})
 
-        await this.setStateAsync({ detalleTabla: updatedList })
+        const { total } = this.calculateTotals();
+
+        await this.setStateAsync({
+            importeTotal: total
+        });
+
     }
 
     handleSelectCantidad = async (event, idProducto) => {
+
         let updatedList = [...this.state.detalleTabla];
         for (let item of updatedList) {
             if (item.idProducto === idProducto) {
                 item.cantidad = event.target.value;
+
+                if (isNumeric(item.cantidad)) {
+                    item.cantidadFinal = item.tipoAjuste === '1' ? parseFloat(item.cantidadActual) + parseFloat(item.cantidad)
+                        : parseFloat(item.cantidadActual) - parseFloat(item.cantidad);
+
+                    item.totalAjuste = item.tipoAjuste === '1' ?
+                        parseFloat(item.costo) * parseFloat(item.cantidad)
+                        : parseFloat(item.costo) * parseFloat(-item.cantidad)
+                }
                 break;
             }
         }
+        await this.setStateAsync({ detalleTabla: updatedList, messageWarning: '' })
 
-        await this.setStateAsync({ detalleTabla: updatedList })
+        const { total } = this.calculateTotals();
+
+        await this.setStateAsync({
+            importeTotal: total
+        });
     }
 
-    async onEventRemove() {
+    async onEventRemoveData() {
         await this.setStateAsync({
             idAlmacen: '',
             nombreAlmacen: '',
             fecha: currentDate(),
             observacion: '',
             detalleTabla: [],
+            importeTotal: 0
         })
+    }
+
+    async onSave() {
+
+        if (this.state.idAlmacen === "") {
+            await this.setStateAsync({ messageWarning: "Seleccione el almacen." })
+            this.refAlmacen.current.focus()
+            return;
+        }
+        if (this.state.detalleTabla.length === 0) {
+            await this.setStateAsync({ messageWarning: "Agregar datos a la tabla." })
+            return;
+        }
+
+        let validate = this.state.detalleTabla.reduce((acumulador, item) =>
+            item.cantidad === "" || !isNumeric(item.cantidad.toString()) ? acumulador + 1 : acumulador + 0
+            , 0);
+
+        if (validate > 0) {
+            await this.setStateAsync({ messageWarning: "Hay detalles en la tabla sin cantidad numerica." });
+            let count = 0;
+            for (let item of this.state.detalleTabla) {
+                count++;
+                if (item.cantidad === "" || !isNumeric(item.cantidad.toString())) {
+                    document.getElementById(count + "imc").focus()
+                }
+            }
+            return;
+        } else {
+            await this.setStateAsync({ messageWarning: "" });
+        }
+
+        ModalAlertDialog("Ajuste", "¿Estás seguro de continuar?", async (event) => {
+            if (event) {
+                try {
+                    ModalAlertInfo("Ajuste", "Procesando información...");
+                    let result = await axios.post('/api/ajusteinventario/add', {
+                        "idAlmacen": this.state.idAlmacen,
+                        "idUsuario": this.props.token.userToken.idUsuario,
+                        "total": this.state.importeTotal,
+                        "fecha": this.state.fecha,
+                        "estado": 1,
+                        "observacion": this.state.observacion.trim().toUpperCase(),
+                        "ajusteDetalle": this.state.detalleTabla
+                    });
+
+                    ModalAlertSuccess("Ajuste", result.data, () => {
+                        this.onEventRemoveData();
+                    });
+                } catch (error) {
+                    if (error.response !== undefined) {
+                        ModalAlertWarning("Ajuste", error.response.data)
+                    } else {
+                        ModalAlertWarning("Ajuste", "Se genero un error interno, intente nuevamente.")
+                    }
+                }
+            }
+        });
     }
 
     render() {
@@ -415,6 +526,8 @@ class AjusteInventarioProceso extends React.Component {
                                 </div>
                             </div>
 
+                            <hr className="mt-0 mb-2" />
+
                             {
                                 this.state.messageWarning === '' ? null :
                                     <div className="alert alert-warning" role="alert">
@@ -426,29 +539,6 @@ class AjusteInventarioProceso extends React.Component {
                                 <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
 
                                     <div className="form-row">
-                                        <div className="form-group col-md-12">
-                                            <button className="btn btn-success" type="button" title="Guardar"><i className="fa fa-save"></i> Guardar</button>
-                                            {" "}
-                                            <button className="btn btn-outline-warning" type="button" title="Abrir lista de productos" onClick={() => this.openModalProduct()}><i className="bi bi-boxes"></i> Producto</button>
-                                            {" "}
-                                            <button className="btn btn-outline-info" type="button" title="Limpiar" onClick={() => this.onEventRemove()}><i className="fa fa-trash"></i> Limpiar</button>
-                                            {" "}
-                                            <button className="btn btn-outline-secondary" type="button" title="Cerrar" onClick={() => this.props.history.goBack()}><i className="fa fa-close"></i> Cerrar</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-row">
-                                        <div className="form-group col-md-4">
-                                            <label>Correlativo</label>
-                                            <div className="input-group input-group-sm">
-                                                <input
-                                                    type="text"
-                                                    disabled={true}
-                                                    className="form-control"
-                                                    value={this.state.correlativo}
-                                                />
-                                            </div>
-                                        </div>
                                         <div className="form-group col-md-4">
                                             <label>Almacen <i className="fa fa-asterisk text-danger small"></i></label>
                                             <div className="input-group input-group-sm">
@@ -474,6 +564,7 @@ class AjusteInventarioProceso extends React.Component {
                                                                 fecha: currentDate(),
                                                                 observacion: '',
                                                                 detalleTabla: [],
+                                                                importeTotal: 0,
                                                                 messageWarning: '',
                                                             });
 
@@ -484,6 +575,7 @@ class AjusteInventarioProceso extends React.Component {
                                                                 fecha: currentDate(),
                                                                 observacion: '',
                                                                 detalleTabla: [],
+                                                                importeTotal: 0,
                                                                 messageWarning: 'Seleccione el almacen.',
                                                             });
                                                         }
@@ -534,17 +626,15 @@ class AjusteInventarioProceso extends React.Component {
                                         </div>
                                     </div>
 
-                                    {/* <div className="form-row">
+                                    <div className="form-row">
                                         <div className="form-group col-md-12">
-                                            <button className="btn btn-success" type="button" title="Guardar"><i className="fa fa-save"></i> Guardar</button>
+                                            <button className="btn btn-success" type="button" title="Guardar" onClick={() => this.onSave()}><i className="fa fa-save"></i> Guardar</button>
                                             {" "}
                                             <button className="btn btn-outline-warning" type="button" title="Abrir lista de productos" onClick={() => this.openModalProduct()}><i className="bi bi-boxes"></i> Producto</button>
                                             {" "}
-                                            <button className="btn btn-outline-info" type="button" title="Limpiar" onClick={() => this.onEventRemove()}><i className="fa fa-trash"></i> Limpiar</button>
-                                            {" "}
-                                            <button className="btn btn-outline-secondary" type="button" title="Cerrar" onClick={() => this.props.history.goBack()}><i className="fa fa-close"></i> Cerrar</button>
+                                            <button className="btn btn-outline-info" type="button" title="Limpiar" onClick={() => this.onEventRemoveData()}><i className="fa fa-trash"></i> Limpiar</button>
                                         </div>
-                                    </div> */}
+                                    </div>
 
                                     <div className="form-row">
                                         <div className="table-responsive">
@@ -552,25 +642,26 @@ class AjusteInventarioProceso extends React.Component {
                                                 <thead>
                                                     <tr>
                                                         <th width="auto" className="p-1">Quitar</th>
-                                                        <th width="40%" className="p-1">Producto</th>
+                                                        <th width="35%" className="p-1">Producto</th>
                                                         <th width="10%" className="p-1">Cantidad actual</th>
-                                                        <th width="20%" className="p-1">Tipo de ajuste</th>
+                                                        <th width="15%" className="p-1">Tipo de ajuste</th>
                                                         <th width="10%" className="p-1">Cantida</th>
                                                         <th width="10%" className="p-1">Costo</th>
                                                         <th width="10%" className="p-1">Cantidad final</th>
+                                                        <th width="10%" className="p-1">Total ajustado</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {
                                                         this.state.detalleTabla.length === 0 ? (
                                                             <tr className="text-center">
-                                                                <td colSpan="7" className="p-1"> Agregar datos a la tabla </td>
+                                                                <td colSpan="8" className="p-1"> Agregar datos a la tabla </td>
                                                             </tr>
                                                         ) : (
                                                             this.state.detalleTabla.map((item, index) => (
                                                                 <tr key={index} style={{ "fontSize": "12px" }}>
                                                                     <td className="p-1">
-                                                                        <button className="btn btn-outline-danger btn-sm" title="Eliminar" onClick={() => this.removeObjectTable(item.idProducto)}><i className="bi bi-trash"></i></button>
+                                                                        <button className="btn btn-outline-danger btn-sm" title="Eliminar" onClick={() => this.removeObjectTable(item.idProducto)}><i className="fa fa-close"></i></button>
                                                                     </td>
                                                                     <td className="p-1">{item.codigoProducto}<br />{item.nombreProducto}</td>
                                                                     <td className="p-1">{item.cantidadActual}</td>
@@ -587,6 +678,7 @@ class AjusteInventarioProceso extends React.Component {
                                                                         <input
                                                                             type="text"
                                                                             className="form-control form-control-sm"
+                                                                            id={++index + "imc"}
                                                                             value={item.cantidad}
                                                                             onChange={(event) => this.handleSelectCantidad(event, item.idProducto)}
                                                                             onKeyPress={keyNumberFloat}
@@ -594,20 +686,18 @@ class AjusteInventarioProceso extends React.Component {
                                                                     </td>
                                                                     <td className="p-1">{item.costo}</td>
                                                                     <td className="p-1">{item.cantidadFinal}</td>
+                                                                    <td className="p-1">{item.totalAjuste}</td>
                                                                 </tr>
                                                             ))
                                                         )
                                                     }
                                                 </tbody>
-
-                                                {/* <tfoot>
+                                                <tfoot>
                                                     <tr>
-                                                        <td className="text-right p-1" width="auto" colSpan={6}>Total: M</td>
-         
-                                                        <td className="text-right p-1">{100}</td>
+                                                        <td className="text-right p-1" width="auto" colSpan={7}><strong>Total</strong></td>
+                                                        <td className="text-right p-1">{this.state.importeTotal}</td>
                                                     </tr>
-                                                </tfoot> */}
-
+                                                </tfoot>
                                             </table>
                                         </div>
                                     </div>
@@ -621,4 +711,11 @@ class AjusteInventarioProceso extends React.Component {
         )
     }
 }
-export default AjusteInventarioProceso;
+
+const mapStateToProps = (state) => {
+    return {
+        token: state.reducer
+    }
+}
+
+export default connect(mapStateToProps, null)(AjusteInventarioProceso);

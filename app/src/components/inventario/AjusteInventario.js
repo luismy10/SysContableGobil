@@ -5,7 +5,9 @@ import {
     ModalAlertInfo,
     ModalAlertSuccess,
     ModalAlertWarning,
-    ModalAlertDialog
+    ModalAlertDialog,
+    timeForma24,
+    numberFormat
 } from '../tools/Tools';
 import Paginacion from '../tools/Paginacion';
 
@@ -41,7 +43,7 @@ class AjusteInventario extends React.Component {
     }
 
     async componentDidMount() {
-        // this.loadInit();
+        this.loadInit();
     }
 
     componentWillUnmount() {
@@ -127,11 +129,8 @@ class AjusteInventario extends React.Component {
         })
     }
 
-    onEventEdit(idAjusteInventario) {
-        this.props.history.push({
-            pathname: `${this.props.location.pathname}/proceso`,
-            search: "?idAjusteInventario=" + idAjusteInventario
-        })
+    onEventDetail(){
+
     }
 
     onEventDelete = (id) => {
@@ -168,7 +167,7 @@ class AjusteInventario extends React.Component {
                 <div className='row'>
                     <div className='col-lg-12 col-md-12 col-sm-12 col-xs-12'>
                         <div className="form-group">
-                            <h5>Ajuste de Inventario <small className="text-secondary">LISTA</small></h5>
+                            <h5>Ajuste de inventario <small className="text-secondary">LISTA</small></h5>
                         </div>
                     </div>
                 </div>
@@ -211,10 +210,11 @@ class AjusteInventario extends React.Component {
                                 <thead>
                                     <tr>
                                         <th width="5%" className="p-1">#</th>
-                                        <th width="20%" className="p-1">Tipo Ajuste</th>
-                                        <th width="20%" className="p-1">Fecha</th>
+                                        <th width="10%" className="p-1">Correlativo</th>
+                                        <th width="10%" className="p-1">Fecha</th>
                                         <th width="20%" className="p-1">Almacen</th>
-                                        <th width="35%" className="p-1">Observación</th>
+                                        <th width="10%" className="p-1">Total</th>
+                                        <th width="45%" className="p-1">Observación</th>
                                         <th width="auto" className="text-center p-1">Acciones</th>
                                     </tr>
                                 </thead>
@@ -222,50 +222,47 @@ class AjusteInventario extends React.Component {
                                     {
                                         this.state.loading ? (
                                             <tr>
-                                                <td className="text-center p-1" colSpan="6">
+                                                <td className="text-center p-1" colSpan="7">
                                                     {spinnerLoading()}
                                                 </td>
                                             </tr>
                                         ) : this.state.lista.length === 0 ? (
                                             <tr className="text-center">
-                                                <td className="p-1" colSpan="6">¡No hay datos registrados!</td>
+                                                <td className="p-1" colSpan="7">¡No hay datos registrados!</td>
                                             </tr>
                                         ) :
-
                                             (
-                                                null
-                                                // this.state.lista.map((item, index) => {
-                                                //     return (
-                                                //         <tr key={index} >
-                                                //             <td className="p-1">{item.id}</td>
-                                                //             <td className="p-1">
-                                                //                 {item.codigo}<br />
-                                                //                 {item.nombre}
-                                                //             </td>
-                                                //             <td className="p-1">{item.costo}</td>
-                                                //             <td className="p-1">100</td>
-                                                //             <td className="p-1">{item.impuesto}</td>
-                                                //             <td className="text-center p-1">{item.cantidad}<br />{item.medida}</td>
-                                                //             <td className="p-1">{item.almacen}</td>
-                                                //             <td className="p-1">
-                                                //                 <div className="d-flex">
-                                                //                     <button
-                                                //                         className="btn btn-outline-warning btn-sm"
-                                                //                         title="Editar"
-                                                //                         onClick={() => this.onEventEdit(item.idAjusteInventario)}>
-                                                //                         <i className="bi bi-pencil"></i>
-                                                //                     </button>
-                                                //                     <button
-                                                //                         className="btn btn-outline-danger btn-sm ml-1"
-                                                //                         title="Eliminar"
-                                                //                         onClick={() => this.onEventDelete(item.idAjusteInventario)}>
-                                                //                         <i className="bi bi-trash"></i>
-                                                //                     </button>
-                                                //                 </div>
-                                                //             </td>
-                                                //         </tr>
-                                                //     )
-                                                // })
+                        
+                                                this.state.lista.map((item, index) => {
+                                                    return (
+                                                        <tr key={index} >
+                                                            <td className="p-1">{item.id}</td>
+                                                            <td className="p-1">{item.correlativo}</td>
+                                                            <td className="p-1">{item.fecha}<br/>{timeForma24(item.hora)}</td>
+                                                            <td className="p-1">{item.almacen}</td>
+                                                            <td className="p-1">{numberFormat(item.total)}</td>
+                                                            <td className="p-1">{item.observacion}</td>
+                                                            <td className="p-1">
+                                                                <div className="d-flex">
+                                                                    <button
+                                                                        className="btn btn-outline-primary btn-sm"
+                                                                        title="Ver detalle"
+                                                                        onClick={() => {
+                                                                            this.props.history.push({ pathname: `${this.props.location.pathname}/detalle`, search: "?idAjusteInventario=" + item.idAjusteInventario })
+                                                                        }}>
+                                                                        <i className="fa fa-eye"></i>
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-outline-danger btn-sm ml-1"
+                                                                        title="Eliminar"
+                                                                        onClick={() => this.onEventDelete(item.idAjusteInventario)}>
+                                                                        <i className="bi bi-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                })
                                             )
                                     }
                                 </tbody>

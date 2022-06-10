@@ -57,6 +57,7 @@ app.use('/api/asiento', require('./src/router/Asiento'));
 //inventario
 app.use('/api/almacen', require('./src/router/Almacen'));
 app.use('/api/producto', require('./src/router/Producto'));
+app.use('/api/ajusteinventario', require('./src/router/AjusteInventario'));
 
 
 app.use('/api/dashboard', require('./src/router/Dashboard'));

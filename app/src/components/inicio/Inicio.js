@@ -65,6 +65,7 @@ import Productos from '../inventario/Productos';
 import ProductoProceso from '../inventario/registros/ProductoProceso';
 import AjusteInventario from '../inventario/AjusteInventario';
 import AjusteInventarioProceso from '../inventario/registros/AjusteInventarioProceso';
+import AjusteInventarioDetalle from '../inventario/registros/AjusteInventarioDetalle'
 
 const Page404 = (props) => {
     return (
@@ -449,8 +450,11 @@ class Inicio extends React.Component {
                                     exact={true}
                                     render={(props) => <AjusteInventarioProceso {...props} />}
                                 />
-
-
+                                <Route
+                                    path={`${path}/ajusteinventario/detalle`}
+                                    exact={true}
+                                    render={(props) => <AjusteInventarioDetalle {...props} />}
+                                />
                                 <Route component={Page404} />
                             </Switch>
                         </div>
