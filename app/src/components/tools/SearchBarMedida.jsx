@@ -83,6 +83,7 @@ class SearchBarMedida extends React.Component {
             <input
               type="text"
               className="form-control"
+              autoComplete="off"
               placeholder={this.props.placeholder}
               ref={this.props.refMedida}
               value={this.props.nombreMedida}

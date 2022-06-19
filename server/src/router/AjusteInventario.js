@@ -150,9 +150,10 @@ router.post('/add', async function (req, res) {
 
             await conec.execute(connection, `UPDATE cantidad 
                 SET cantidad=cantidad+(?)
-                WHERE idProducto = ?`, [
+                WHERE idProducto = ? AND idAlmacen=?`, [
                 parseFloat(cantidad),
                 item.idProducto,
+                req.body.idAlmacen
             ])
         }
 

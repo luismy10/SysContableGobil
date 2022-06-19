@@ -142,6 +142,51 @@ router.post('/add', async function (req, res) {
             req.body.descripcion
         ]);
 
+        if (req.body.precioCheck === false) {
+            //Price unique
+            await conec.execute(connection, `INSERT INTO precio(
+                idProducto,
+                nombre,
+                valor,
+                factor,
+                estado) values(?,?,?,?,?)`, [
+                idProducto,
+                "PRECIO GENERAL",
+                parseFloat(req.body.precio),
+                1,
+                1
+            ]);
+        } else {
+            // PriceLista > 1
+            await conec.execute(connection, `INSERT INTO precio(
+                idProducto,
+                nombre,
+                valor,
+                factor,
+                estado) values(?,?,?,?,?)`, [
+                idProducto,
+                "PRECIO GENERAL",
+                parseFloat(req.body.precio),
+                1,
+                1
+            ]);
+
+            for (let item of req.body.listaPrecios) {
+                await conec.execute(connection, `INSERT INTO precio(
+                    idProducto,
+                    nombre,
+                    valor,
+                    factor,
+                    estado) values(?,?,?,?,?)`, [
+                    idProducto,
+                    item.nombrePrecio,
+                    parseFloat(item.valor),
+                    parseFloat(item.factor),
+                    1
+                ]);
+            }
+        }
+
         await conec.execute(connection, `INSERT INTO cantidad(
             idAlmacen,
             idProducto ,
@@ -169,8 +214,8 @@ router.post('/add', async function (req, res) {
 router.get('/id', async function (req, res) {
 
     try {
-        
-        let result = await conec.query( `SELECT 
+
+        let result = await conec.query(`SELECT 
         prod.idProducto,
         prod.idAlmacen,
         prod.idImpuesto,
@@ -203,25 +248,25 @@ router.get('/id', async function (req, res) {
     }
 });
 
-router.post('/update', async function (req, res){
+router.post('/update', async function (req, res) {
     let connection = null;
-    try{
+    try {
 
         connection = await conec.beginTransaction();
 
-        let result = await conec.execute(connection, `SELECT idAlmacen FROM producto WHERE idProducto=?`, [
-            req.body.idProducto
-        ]);
-
-        if(result[0].idAlmacen !== req.body.idAlmacen){
-            await conec.execute(connection, `UPDATE cantidad
-                SET
-                idAlmacen=?
-                WHERE idProducto=?`, [
-                req.body.idAlmacen,
-                req.body.idProducto
-            ]);
-        }
+        //Refactorizar --> mismo producto para almacenes de venta
+        // let result = await conec.execute(connection, `SELECT idAlmacen FROM producto WHERE idProducto=?`, [
+        //     req.body.idProducto
+        // ]);
+        // if(result[0].idAlmacen !== req.body.idAlmacen){
+        //     await conec.execute(connection, `UPDATE cantidad
+        //         SET
+        //         idAlmacen=?
+        //         WHERE idProducto=?`, [
+        //         req.body.idAlmacen,
+        //         req.body.idProducto
+        //     ]);
+        // }
 
         await conec.execute(connection, `UPDATE producto 
             SET 
@@ -254,10 +299,60 @@ router.post('/update', async function (req, res){
             req.body.idProducto
         ])
 
+        await conec.execute(connection, `DELETE FROM precio WHERE idProducto=?`, [
+            req.body.idProducto
+        ]);
+
+
+        if (req.body.precioCheck === false) {
+            //Price unique
+            await conec.execute(connection, `INSERT INTO precio(
+               idProducto,
+               nombre,
+               valor,
+               factor,
+               estado) values(?,?,?,?,?)`, [
+                idProducto,
+                "PRECIO GENERAL",
+                parseFloat(req.body.precio),
+                1,
+                1
+            ]);
+        } else {
+            // PriceLista > 1
+            await conec.execute(connection, `INSERT INTO precio(
+               idProducto,
+               nombre,
+               valor,
+               factor,
+               estado) values(?,?,?,?,?)`, [
+                idProducto,
+                "PRECIO GENERAL",
+                parseFloat(req.body.precio),
+                1,
+                1
+            ]);
+
+            for (let item of req.body.listaPrecios) {
+                await conec.execute(connection, `INSERT INTO precio(
+                   idProducto,
+                   nombre,
+                   valor,
+                   factor,
+                   estado) values(?,?,?,?,?)`, [
+                    idProducto,
+                    item.nombrePrecio,
+                    parseFloat(item.valor),
+                    parseFloat(item.factor),
+                    1
+                ]);
+            }
+        }
+
         await conec.commit(connection)
         res.status(200).send('Datos actualizados correctamente.')
 
-    } catch(error){
+    } catch (error) {
         if (connection != null) {
             await conec.rollback(connection)
         }
@@ -266,7 +361,7 @@ router.post('/update', async function (req, res){
     }
 });
 
-router.delete('/delete', async function(req, res){
+router.delete('/delete', async function (req, res) {
     let connection = null;
     try {
         connection = await conec.beginTransaction();

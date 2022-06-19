@@ -11,7 +11,8 @@ import {
     ModalAlertWarning,
     showModal,
     viewModal,
-    clearModal
+    clearModal,
+    numberFormat
 } from '../../tools/Tools';
 import Paginacion from '../../tools/Paginacion';
 import { connect } from 'react-redux';
@@ -470,7 +471,7 @@ class AjusteInventarioProceso extends React.Component {
                                                                         <td className="p-1">{item.codigo}<br />{item.nombre}</td>
                                                                         <td className="p-1">{item.cantidad}<br />{item.medida}</td>
                                                                         <td className="p-1">{item.impuesto}</td>
-                                                                        <td className="p-1">{item.costo}</td>
+                                                                        <td className="p-1">{numberFormat(item.costo)}</td>
                                                                     </tr>
                                                                 )
                                                             })
@@ -684,9 +685,9 @@ class AjusteInventarioProceso extends React.Component {
                                                                             onKeyPress={keyNumberFloat}
                                                                         />
                                                                     </td>
-                                                                    <td className="p-1">{item.costo}</td>
+                                                                    <td className="p-1">{numberFormat(item.costo)}</td>
                                                                     <td className="p-1">{item.cantidadFinal}</td>
-                                                                    <td className="p-1">{item.totalAjuste}</td>
+                                                                    <td className="p-1">{numberFormat(item.totalAjuste)}</td>
                                                                 </tr>
                                                             ))
                                                         )
@@ -695,7 +696,7 @@ class AjusteInventarioProceso extends React.Component {
                                                 <tfoot>
                                                     <tr>
                                                         <td className="text-right p-1" width="auto" colSpan={7}><strong>Total</strong></td>
-                                                        <td className="text-right p-1">{this.state.importeTotal}</td>
+                                                        <td className="text-right p-1">{numberFormat(this.state.importeTotal)}</td>
                                                     </tr>
                                                 </tfoot>
                                             </table>

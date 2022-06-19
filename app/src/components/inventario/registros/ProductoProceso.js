@@ -1,21 +1,19 @@
 import React from 'react';
 import axios from 'axios';
+import { connect } from 'react-redux';
 import {
-    currentDate,
-    keyNumberPhone,
-    keyNumberInteger,
     spinnerLoading,
-    convertNullText,
     ModalAlertInfo,
     ModalAlertSuccess,
     ModalAlertWarning,
     keyNumberFloat,
     showModal,
     hideModal,
-    viewModal,
-    clearModal
+    isNumeric
 } from '../../tools/Tools';
 import SearchBarMedida from "../../tools/SearchBarMedida";
+import ModalMedida from './ModalMedida';
+import ListaPrecios from './ListaPrecios'
 
 class ProductoProceso extends React.Component {
     constructor(props) {
@@ -23,7 +21,6 @@ class ProductoProceso extends React.Component {
         this.state = {
 
             idProducto: '',
-
             destino: 1,
             tipo: '1',
             codigo: '',
@@ -50,18 +47,16 @@ class ProductoProceso extends React.Component {
             estado: true,
             descripcion: '',
 
+            precioCheck: false,
+            listaPrecios: [],
+
             loading: false,
             messageWarning: '',
             msgLoading: 'Cargando datos...',
 
-            // Modal medida
-            detalleMedidas: [],
-            idTempMedida: '',
-            newNameMedida: '',
-            codigoMedida: '',
-            loadModalTable: false,
-            msgModalTable: 'Cargando datos...',
-            msgWarningModal: '',
+            //Modals 
+            idModalMedida: 'Medida',
+            isViewModalMedida: false
         }
 
         this.refNombre = React.createRef()
@@ -74,12 +69,20 @@ class ProductoProceso extends React.Component {
         this.refAlmacenSuministro = React.createRef()
         this.refCostoSuministro = React.createRef()
 
-        this.refNewNameMedida = React.createRef()
-        this.refSearchMedida = React.createRef()
+        this.refBtnPrices = React.createRef()
 
         this.abortControllerView = new AbortController();
 
         this.selectItem = false;
+
+    }
+
+    updateListPrice = async (params) => {
+        await this.setStateAsync({ listaPrecios: params })
+    }
+
+    updateMsgWarning = async (msg) => {
+        await this.setStateAsync({ messageWarning: msg })
     }
 
     setStateAsync(state) {
@@ -92,36 +95,13 @@ class ProductoProceso extends React.Component {
         await this.setStateAsync({
             loading: true
         })
-
         const url = this.props.location.search;
         const idProducto = new URLSearchParams(url).get("idProducto");
-
         if (idProducto !== null) {
             this.loadDataId(idProducto)
         } else {
             this.loadData();
         }
-
-        viewModal("modalMedida", () => {
-            this.abortControllerModal = new AbortController();
-            this.initLoadModal(0, '');
-        });
-
-        clearModal("modalMedida", async () => {
-            this.abortControllerModal.abort();
-            await this.setStateAsync({
-                detalleMedidas: [],
-                idTempMedida: '',
-                newNameMedida: '',
-                codigoMedida: '',
-                loadModalTable: false,
-                msgModalTable: 'Cargando datos...',
-                msgWarningModal: '',
-            });
-
-            this.refSearchMedida.current.value = '';
-
-        });
     }
 
     componentWillUnmount() {
@@ -133,11 +113,9 @@ class ProductoProceso extends React.Component {
             const almacenVenta = await axios.get("/api/almacen/listcomboventa", {
                 signal: this.abortControllerView.signal,
             });
-
             const almacenProdConsumo = await axios.get("/api/almacen/listcomboprodconsumo", {
                 signal: this.abortControllerView.signal,
             });
-
             const impuesto = await axios.get("/api/impuesto/listcombo", {
                 signal: this.abortControllerView.signal,
             });
@@ -159,7 +137,6 @@ class ProductoProceso extends React.Component {
 
     loadDataId = async (id) => {
         try {
-
             const producto = await axios.get("/api/producto/id", {
                 signal: this.abortControllerView.signal,
                 params: {
@@ -172,11 +149,9 @@ class ProductoProceso extends React.Component {
             const almacenVenta = await axios.get("/api/almacen/listcomboventa", {
                 signal: this.abortControllerView.signal,
             });
-
             const almacenProdConsumo = await axios.get("/api/almacen/listcomboprodconsumo", {
                 signal: this.abortControllerView.signal,
             });
-
             const impuesto = await axios.get("/api/impuesto/listcombo", {
                 signal: this.abortControllerView.signal,
             });
@@ -223,7 +198,6 @@ class ProductoProceso extends React.Component {
     }
 
     handleFilter = async (event) => {
-
         const searchWord = this.selectItem ? "" : event.target.value;
         await this.setStateAsync({ idMedida: '', nombreMedida: searchWord });
         this.selectItem = false;
@@ -248,9 +222,7 @@ class ProductoProceso extends React.Component {
     }
 
     onEventSelectItem = async (value) => {
-
         await this.setStateAsync({
-            // nombreMedida: value.nombre +' '+ value.codigo,
             nombreMedida: value.nombre,
             filteredData: [],
             idMedida: value.idMedida
@@ -263,94 +235,13 @@ class ProductoProceso extends React.Component {
         this.selectItem = false;
     }
 
-    onEventAddItem() {
-        showModal('modalMedida')
-    }
-
-    initLoadModal = async (opcion, buscar) => {
-        try {
-
-            await this.setStateAsync({ loadModalTable: true })
-
-            const medida = await axios.get("/api/producto/listmedida", {
-                signal: this.abortControllerModal.signal,
-                params: {
-                    "opcion": opcion,
-                    "buscar": buscar
-                }
-            });
-
-            await this.setStateAsync({
-                detalleMedidas: medida.data,
-                idTempMedida: '',
-                newNameMedida: '',
-                codigoMedida: '',
-                loadModalTable: false,
-                msgModalTable: 'Cargando datos...',
-                msgWarningModal: '',
-            })
-
-
-        } catch (error) {
-            if (error.message !== "canceled") {
-                await this.setStateAsync({
-                    msgModalTable: "Se produjo un error un interno, intente nuevamente."
-                });
-            }
-        }
-    }
-
-    async onSaveMedida() {
-
-        if (this.state.newNameMedida === '') {
-            this.setState({ msgWarningModal: 'Ingrese el nombre.' })
-            this.refNewNameMedida.current.focus();
-            return;
-        }
-
-        try {
-            ModalAlertInfo("Medida", "Procesando información...");
-
-            if (this.state.idTempMedida !== "") {
-                const editar = await axios.post('/api/producto/updatemedida', {
-                    "nombre": this.state.newNameMedida.trim().toUpperCase(),
-                    "codigo": this.state.codigoMedida.trim().toUpperCase(),
-                    "idMedida": this.state.idTempMedida
-                })
-                ModalAlertSuccess("Medida", editar.data, () => {
-                    this.initLoadModal(0, "")
-                });
-            } else {
-                const agregar = await axios.post("/api/producto/addmedida", {
-                    "nombre": this.state.newNameMedida.trim().toUpperCase(),
-                    "codigo": this.state.codigoMedida.trim().toUpperCase()
-                })
-                ModalAlertSuccess("Medida", agregar.data, () => {
-                    this.initLoadModal(0, "")
-                });
-            }
-
-        } catch (error) {
-            if (error.response !== undefined) {
-                ModalAlertWarning("Medida", error.response.data)
-            } else {
-                ModalAlertWarning("Medida", "Se genero un error interno, intente nuevamente.")
-            }
-
-        }
-    }
-
-    searchText = async (text) => {
-        this.initLoadModal(1, text)
-    }
-
     onEventGuardar() {
         if (this.state.destino === 1) {
             this.prodVenta()
         } else {
             this.prodProduccionConsumo()
         }
-
+        // this.state.destino === 1 ? this.prodVenta() : this.prodProduccionConsumo()
     }
 
     async prodVenta() {
@@ -372,24 +263,106 @@ class ProductoProceso extends React.Component {
         } else if (this.state.precio === '') {
             this.setState({ messageWarning: 'Ingrese el precio del producto.' })
             this.refPrecio.current.focus()
+        } else if (!isNumeric(this.state.precio.toString())) {
+            this.setState({ messageWarning: 'Ingrese un precio númerico' })
+            this.refPrecio.current.focus()
         } else {
-            
+
+            if (this.state.precioCheck) {
+                if (this.state.listaPrecios.length === 0) {
+                    await this.setStateAsync({
+                        messageWarning: 'Agregar datos a la lista de precios'
+                    });
+                    this.refBtnPrices.current.focus();
+                    return;
+                } else {
+
+                    let nombrePrecio = this.state.listaPrecios.reduce((acumulador, item) =>
+                        item.nombrePrecio === "" ? acumulador + 1 : acumulador + 0
+                        , 0)
+                    if (nombrePrecio > 0) {
+                        // await this.setStateAsync({ msgWarning: "Hay detalle(s) en la tabla con nombre vacio." });
+                        let count = 0;
+                        for (let item of this.state.listaPrecios) {
+                            count++;
+                            if (item.nombrePrecio === "") {
+                                document.getElementById(count + "imc").focus()
+                            }
+                        }
+                        return;
+                    }
+
+                    let valor = this.state.listaPrecios.reduce((acumulador, item) =>
+                        item.valor === "" || !isNumeric(item.valor.toString()) ? acumulador + 1 : acumulador + 0
+                        , 0);
+                    if (valor > 0) {
+                        let count = 0;
+                        for (let item of this.state.listaPrecios) {
+                            count++;
+                            if (item.valor === "" || !isNumeric(item.valor.toString())) {
+                                document.getElementById(count + "imd").focus()
+                            }
+                        }
+                        return;
+                    }
+
+                    let factor = this.state.listaPrecios.reduce((acumulador, item) =>
+                        item.factor === "" || !isNumeric(item.factor.toString()) ? acumulador + 1 : acumulador + 0
+                        , 0);
+
+                    if (factor > 0) {
+                        let count = 0;
+                        for (let item of this.state.listaPrecios) {
+                            count++;
+                            if (item.factor === "" || !isNumeric(item.factor.toString())) {
+                                document.getElementById(count + "ime").focus()
+                            }
+                        }
+                        return;
+                    }
+                }
+            }
+
             try {
                 ModalAlertInfo("Producto", "Procesando información...");
 
                 let result = '';
 
-                if(this.state.idProducto !== ''){
+                if (this.state.idProducto !== '') {
                     result = await axios.post("/api/producto/update", {
                         "destino": this.state.destino,
                         "tipo": parseInt(this.state.tipo),
                         "codigo": this.state.codigo.trim().toUpperCase(),
                         "nombre": this.state.nombre.trim().toUpperCase(),
                         "idMedida": this.state.idMedida,
-    
+
                         "idAlmacen": this.state.tipo === '1' ? this.state.idAlmacen : '',
                         "costo": this.state.tipo === '1' ? parseFloat(this.state.costo) : 0,
-    
+
+                        "idImpuesto": this.state.idImpuesto,
+                        "precio": parseFloat(this.state.precio),
+
+                        "estado": this.state.estado,
+                        "categoria": this.state.idCategoria,
+                        "marca": this.state.idMarca,
+                        "descripcion": this.state.descripcion.trim().toUpperCase(),
+
+                        "precioCheck": this.state.precioCheck,
+                        "listaPrecios": this.state.listaPrecios,
+
+                        "idProducto": this.state.idProducto
+                    });
+                } else {
+                    result = await axios.post("/api/producto/add", {
+                        "destino": this.state.destino,
+                        "tipo": parseInt(this.state.tipo),
+                        "codigo": this.state.codigo.trim().toUpperCase(),
+                        "nombre": this.state.nombre.trim().toUpperCase(),
+                        "idMedida": this.state.idMedida,
+
+                        "idAlmacen": this.state.tipo === '1' ? this.state.idAlmacen : '',
+                        "costo": this.state.tipo === '1' ? parseFloat(this.state.costo) : 0,
+
                         "idImpuesto": this.state.idImpuesto,
                         "precio": parseFloat(this.state.precio),
                         "estado": this.state.estado,
@@ -397,28 +370,12 @@ class ProductoProceso extends React.Component {
                         "marca": this.state.idMarca,
                         "descripcion": this.state.descripcion.trim().toUpperCase(),
 
-                        "idProducto": this.state.idProducto
-                    });
-                } else{
-                    result = await axios.post("/api/producto/add", {
-                        "destino": this.state.destino,
-                        "tipo": parseInt(this.state.tipo),
-                        "codigo": this.state.codigo.trim().toUpperCase(),
-                        "nombre": this.state.nombre.trim().toUpperCase(),
-                        "idMedida": this.state.idMedida,
-    
-                        "idAlmacen": this.state.tipo === '1' ? this.state.idAlmacen : '',
-                        "costo": this.state.tipo === '1' ? parseFloat(this.state.costo) : 0,
-    
-                        "idImpuesto": this.state.idImpuesto,
-                        "precio": parseFloat(this.state.precio),
-                        "estado": this.state.estado,
-                        "categoria": this.state.idCategoria,
-                        "marca": this.state.idMarca,
-                        "descripcion": this.state.descripcion.trim().toUpperCase()
+                        "precioCheck": this.state.precioCheck,
+                        "listaPrecios": this.state.listaPrecios,
+
                     });
                 }
-                
+
                 ModalAlertSuccess("Producto", result.data, () => {
                     this.props.history.goBack()
                 });
@@ -455,17 +412,17 @@ class ProductoProceso extends React.Component {
 
                 let result = null;
 
-                if(this.state.idProducto !== ""){
+                if (this.state.idProducto !== "") {
                     result = await axios.post("/api/producto/update", {
                         "destino": this.state.destino,
                         "tipo": 0,
                         "codigo": this.state.codigo.trim().toUpperCase(),
                         "nombre": this.state.nombre.trim().toUpperCase(),
                         "idMedida": this.state.idMedida,
-    
+
                         "idAlmacen": this.state.idAlmacenSuminitro,
                         "costo": parseFloat(this.state.costoSuministro),
-    
+
                         "idImpuesto": this.state.idImpuesto,
                         "precio": 0,
                         "estado": this.state.estado,
@@ -474,19 +431,19 @@ class ProductoProceso extends React.Component {
                         "descripcion": this.state.descripcion.trim().toUpperCase(),
 
                         "idProducto": this.state.idProducto
-    
+
                     });
-                } else{
+                } else {
                     result = await axios.post("/api/producto/add", {
                         "destino": this.state.destino,
                         "tipo": 0,
                         "codigo": this.state.codigo.trim().toUpperCase(),
                         "nombre": this.state.nombre.trim().toUpperCase(),
                         "idMedida": this.state.idMedida,
-    
+
                         "idAlmacen": this.state.idAlmacenSuminitro,
                         "costo": parseFloat(this.state.costoSuministro),
-    
+
                         "idImpuesto": this.state.idImpuesto,
                         "precio": 0,
                         "estado": this.state.estado,
@@ -495,7 +452,7 @@ class ProductoProceso extends React.Component {
                         "descripcion": this.state.descripcion.trim().toUpperCase()
                     });
                 }
-                
+
                 ModalAlertSuccess("Producto", result.data, () => {
                     this.props.history.goBack()
                 });
@@ -506,167 +463,32 @@ class ProductoProceso extends React.Component {
                 } else {
                     ModalAlertWarning("Producto", "Se genero un error interno, intente nuevamente.")
                 }
-
             }
         }
+    }
 
+    openMedidaModal = async () => {
+        await this.setStateAsync({
+            isViewModalMedida: true
+        })
+        showModal(this.state.idModalMedida)
+    }
+
+    closeMedidaModal = async (e) => {
+        hideModal(this.state.idModalMedida)
+        await this.setStateAsync({
+            isViewModalMedida: false
+        })
     }
 
     render() {
         return (
             <>
-
-                {/* Inicio modal*/}
-                <div className="modal fade" id="modalMedida" data-backdrop="static">
-                    <div className="modal-dialog modal-md">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">{this.state.idTempMedida === '' ? 'Nueva' : 'Editar'} unida de medida</h5>
-                                <button type="button" className="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div className="modal-body">
-
-                                {
-                                    this.state.msgWarningModal === '' ? null :
-                                        <div className="alert alert-warning" role="alert">
-                                            <i className="bi bi-exclamation-diamond-fill"></i> {this.state.msgWarningModal}
-                                        </div>
-                                }
-
-
-                                <div className="form-row">
-                                    <div className="form-group col-md-6">
-                                        <label>Nombre <i className="fa fa-asterisk text-danger small"></i></label>
-                                        <div className="input-group input-group-sm">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                placeholder="Ingrese el nombre"
-                                                maxLength={250}
-                                                ref={this.refNewNameMedida}
-                                                value={this.state.newNameMedida}
-                                                onChange={async (event) => {
-                                                    if (event.target.value.trim().length > 0) {
-                                                        await this.setStateAsync({
-                                                            newNameMedida: event.target.value,
-                                                            msgWarningModal: ''
-                                                        });
-                                                    } else {
-                                                        await this.setStateAsync({
-                                                            newNameMedida: event.target.value,
-                                                            msgWarningModal: 'Ingrese el nombre.'
-                                                        });
-                                                    }
-                                                }} />
-                                        </div>
-                                    </div>
-                                    <div className="form-group col-md-6">
-                                        <label>Simbolo </label>
-                                        <div className="input-group input-group-sm">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                placeholder="Ingrese el simbolo"
-                                                value={this.state.codigoMedida}
-                                                onChange={(event) => this.setState({ codigoMedida: event.target.value })} />
-                                            <button className={`btn btn-sm ml-1 ${this.state.idTempMedida === '' ? 'btn-outline-info' : 'btn-outline-warning'}`} title={this.state.idTempMedida === '' ? 'Agregar nueva medida' : 'Editar medida'} onClick={() => this.onSaveMedida()}>
-                                                {
-                                                    this.state.idTempMedida === '' ?
-                                                        <i className="bi bi-plus-circle"></i> :
-                                                        <i className="bi bi-pen-fill"></i>
-                                                }
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* <div className="form-group col-md-12">
-                                        <div className="text-center">
-                                            <button className={`btn btn-sm ml-1 ${this.state.idTempMedida === '' ? 'btn-outline-info' : 'btn-outline-warning'}`} title={this.state.idTempMedida === '' ? 'Agregar nueva medida' : 'Editar medida'} onClick={() => this.onSaveMedida()}>
-                                                {
-                                                    this.state.idTempMedida === '' ?
-                                                        <><i className="bi bi-plus-circle"></i> Nuevo</>
-                                                        :
-                                                        <><i className="bi bi-pen-fill"></i> Editar</>
-
-                                                }
-                                            </button>
-                                        </div>
-                                    </div> */}
-
-                                </div>
-
-                                <hr className="mt-0 mb-3" />
-
-                                <div className="form-row">
-                                    <div className="form-group col-md-12">
-                                        <div className="input-group input-group-sm">
-                                            <div className="input-group-prepend">
-                                                <div className="input-group-text"><i className="bi bi-search"></i></div>
-                                            </div>
-                                            <input
-                                                type="search"
-                                                className="form-control"
-                                                placeholder="Buscar..."
-                                                ref={this.refSearchMedida}
-                                                onKeyUp={(event) => this.searchText(event.target.value.trim().toUpperCase())} />
-                                            <button className="btn btn-outline-secondary btn-sm ml-1" title="Recargar" onClick={() => this.initLoadModal(0, "")}>
-                                                <i className="bi bi-arrow-clockwise"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="table-responsive">
-                                        <table className="table table-striped table-bordered rounded">
-                                            <thead>
-                                                <tr>
-                                                    <th width="5%" className="p-1">#</th>
-                                                    <th width="85%" className="p-1">Nombre </th>
-                                                    <th width="10%" className="p-1">Simbolo</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {
-                                                    this.state.loadModalTable ? (
-                                                        <tr>
-                                                            <td className="text-center p-1" colSpan="3">
-                                                                {spinnerLoading(this.state.msgModalTable)}
-                                                            </td>
-                                                        </tr>
-                                                    ) : this.state.detalleMedidas.length === 0 ? (
-                                                        <tr className="text-center">
-                                                            <td className="p-1" colSpan="3">¡No hay datos registrados!</td>
-                                                        </tr>
-                                                    ) :
-
-                                                        (
-                                                            this.state.detalleMedidas.map((item, index) => {
-                                                                return (
-                                                                    <tr key={item.idMedida} onClick={() => this.setState({ idTempMedida: item.idMedida, newNameMedida: item.nombre, codigoMedida: item.codigo })}>
-                                                                        <td className="p-1">{++index}</td>
-                                                                        <td className="p-1">{item.nombre}</td>
-                                                                        <td className="p-1">{item.codigo}</td>
-                                                                    </tr>
-                                                                )
-                                                            })
-                                                        )
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {/* fin modal*/}
+                {
+                    this.state.isViewModalMedida ?
+                        <ModalMedida idModal={this.state.idModalMedida} titleModal={'Unidades de medida'} sizeModal={'modal-md'} closeMedidaModal={this.closeMedidaModal} />
+                        : null
+                }
 
                 {
                     this.state.loading ?
@@ -684,18 +506,18 @@ class ProductoProceso extends React.Component {
                                 </div>
                             </div>
 
+                            <hr className="mt-0 mb-2" />
+
+                            <div className="mb-3">
+                                <span className="text-info">Recuerda que al mover el producto a otro almacen, este se movera con sus cantidades.</span>
+                            </div>
+
                             {
                                 this.state.messageWarning === '' ? null :
                                     <div className="alert alert-warning" role="alert">
                                         <i className="bi bi-exclamation-diamond-fill"></i> {this.state.messageWarning}
                                     </div>
                             }
-
-                            <hr className="mt-0 mb-2"/>
-
-                            <div className="mb-3">
-                                <span className="text-info">Recuerda que al mover el producto a otro almacen, este se movera con sus cantidades.</span>
-                            </div>
 
                             <div className="row">
                                 <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
@@ -743,7 +565,6 @@ class ProductoProceso extends React.Component {
                                                                         tipo: event.target.value,
                                                                         messageWarning: '',
                                                                     });
-
                                                                     //producto
                                                                     if (this.state.tipo === '1') {
                                                                         await this.setStateAsync({
@@ -751,7 +572,6 @@ class ProductoProceso extends React.Component {
                                                                             nombreMedida: ''
                                                                         });
                                                                     }
-
                                                                     //servicio
                                                                     if (this.state.tipo === '2') {
                                                                         await this.setStateAsync({
@@ -761,7 +581,6 @@ class ProductoProceso extends React.Component {
                                                                             costo: ''
                                                                         });
                                                                     }
-
                                                                 }
                                                             }} >
                                                             <option value="1">PRODUCTOS</option>
@@ -827,12 +646,11 @@ class ProductoProceso extends React.Component {
                                                         onEventClearInput={this.onEventClearInput}
                                                         handleFilter={this.handleFilter}
                                                         onEventSelectItem={this.onEventSelectItem}
-                                                        onEventAddItem={this.onEventAddItem}
+                                                        onEventAddItem={this.openMedidaModal}
                                                     />
                                                 </div>
 
                                             </div>
-
 
                                             <div className="form-row">
 
@@ -845,7 +663,6 @@ class ProductoProceso extends React.Component {
                                                             ref={this.refAlmacen}
                                                             value={this.state.idAlmacen}
                                                             onChange={async (event) => {
-
                                                                 if (event.target.value.trim().length > 0) {
                                                                     await this.setStateAsync({
                                                                         idAlmacen: event.target.value,
@@ -912,7 +729,6 @@ class ProductoProceso extends React.Component {
                                                             ref={this.refImpuesto}
                                                             value={this.state.idImpuesto}
                                                             onChange={async (event) => {
-
                                                                 if (event.target.value.trim().length > 0) {
                                                                     await this.setStateAsync({
                                                                         idImpuesto: event.target.value,
@@ -937,7 +753,7 @@ class ProductoProceso extends React.Component {
                                                 </div>
 
                                                 <div className="form-group col-md-6">
-                                                    <label>Precio <i className="fa fa-asterisk text-danger small"></i></label>
+                                                    <label>Precio general <i className="fa fa-asterisk text-danger small"></i></label>
                                                     <div className="input-group input-group-sm">
                                                         <input
                                                             type="text"
@@ -946,7 +762,7 @@ class ProductoProceso extends React.Component {
                                                             ref={this.refPrecio}
                                                             value={this.state.precio}
                                                             onChange={(event) => {
-                                                                if (event.target.value.trim().length > 0) {
+                                                                if (event.target.value !== '' && isNumeric(event.target.value.toString())) {
                                                                     this.setState({
                                                                         precio: event.target.value,
                                                                         messageWarning: '',
@@ -954,15 +770,51 @@ class ProductoProceso extends React.Component {
                                                                 } else {
                                                                     this.setState({
                                                                         precio: event.target.value,
-                                                                        messageWarning: 'Ingrese el precio del producto.',
+                                                                        precioCheck: false,
+                                                                        messageWarning: 'Ingrese un precio númerico',
                                                                     });
                                                                 }
                                                             }}
                                                             onKeyPress={keyNumberFloat} />
+                                                        <div className="input-group-append" title="Lista de precios">
+                                                            <div className="input-group-text">
+                                                                <div className="form-check form-check-inline m-0">
+                                                                    <input
+                                                                        className="form-check-input"
+                                                                        type="checkbox"
+                                                                        checked={this.state.precioCheck}
+                                                                        onChange={async (event) => {
+                                                                            if (this.state.precio !== '' && isNumeric(this.state.precio.toString())) {
+                                                                                await this.setStateAsync({
+                                                                                    precioCheck: event.target.checked,
+                                                                                    messageWarning: ''
+                                                                                })
+                                                                            } else {
+                                                                                await this.setStateAsync({
+                                                                                    precioCheck: false,
+                                                                                    messageWarning: 'Ingrese un precio númerico'
+                                                                                })
+                                                                                this.refPrecio.current.focus()
+                                                                            }
+
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
 
                                             </div>
+
+                                            {
+                                                this.state.precioCheck && (this.state.precio !== '' && isNumeric(this.state.precio.toString())) ?
+                                                    <ListaPrecios
+                                                        updateListPrice={this.updateListPrice}
+                                                        updateMsgWarning={this.updateMsgWarning}
+                                                        idProducto={this.state.idProducto}
+                                                        refBtnPrices={this.refBtnPrices} /> : null
+                                            }
 
                                             <div className="form-row">
 
@@ -1098,7 +950,7 @@ class ProductoProceso extends React.Component {
                                                         onEventClearInput={this.onEventClearInput}
                                                         handleFilter={this.handleFilter}
                                                         onEventSelectItem={this.onEventSelectItem}
-                                                        onEventAddItem={this.onEventAddItem}
+                                                        onEventAddItem={this.openMedidaModal}
                                                     />
                                                 </div>
 
@@ -1114,7 +966,6 @@ class ProductoProceso extends React.Component {
                                                             ref={this.refAlmacenSuministro}
                                                             value={this.state.idAlmacenSuminitro}
                                                             onChange={async (event) => {
-
                                                                 if (event.target.value.trim().length > 0) {
                                                                     await this.setStateAsync({
                                                                         idAlmacenSuminitro: event.target.value,
@@ -1175,13 +1026,11 @@ class ProductoProceso extends React.Component {
                                                             ref={this.refImpuesto}
                                                             value={this.state.idImpuesto}
                                                             onChange={async (event) => {
-
                                                                 if (event.target.value.trim().length > 0) {
                                                                     await this.setStateAsync({
                                                                         idImpuesto: event.target.value,
                                                                         messageWarning: '',
                                                                     });
-
                                                                 } else {
                                                                     await this.setStateAsync({
                                                                         idImpuesto: event.target.value,
@@ -1292,4 +1141,10 @@ class ProductoProceso extends React.Component {
     }
 }
 
-export default ProductoProceso;
+const mapStateToProps = (state) => {
+    return {
+        token: state.reducer
+    }
+}
+
+export default connect(mapStateToProps)(ProductoProceso);
