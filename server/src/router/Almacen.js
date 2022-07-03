@@ -23,6 +23,7 @@ router.get('/list', async function (req, res) {
             al.tipo,
             al.estado,
             al.sistema,
+            al.predeterminado,
             DATE_FORMAT(al.fecha,'%d/%m/%Y') as fecha,
             al.hora
             FROM almacen AS al
@@ -77,8 +78,8 @@ router.post('/add', async function (req, res) {
         let result = await conec.execute(connection, 'SELECT idAlmacen FROM almacen');
 
         let idAlmacen = "";
-
         let sistema = "";
+        let predeterminado = "";
 
         if (result.length != 0) {
 
@@ -101,10 +102,12 @@ router.post('/add', async function (req, res) {
 
             idAlmacen = codigoGenerado;
             sistema = 0;
+            predeterminado = 0;
 
         } else {
             idAlmacen = "AL0001";
             sistema = 1;
+            predeterminado = 1;
         }
 
         await conec.execute(connection, `INSERT INTO almacen(
@@ -116,9 +119,10 @@ router.post('/add', async function (req, res) {
             tipo,
             estado,
             sistema,
+            predeterminado,
             fecha,
             hora) 
-            values (?,?,?,?,?,?,?,?,?,?)`, [
+            values (?,?,?,?,?,?,?,?,?,?,?)`, [
             idAlmacen,
             req.body.idUbigeo,
             req.body.idUsuario,
@@ -127,6 +131,7 @@ router.post('/add', async function (req, res) {
             parseInt(req.body.tipo),
             req.body.estado,
             sistema,
+            predeterminado,
             currentDate(),
             currentTime(),
         ]);
@@ -224,7 +229,7 @@ router.delete('/delete', async function (req, res) {
         //     return;
         // }
 
-        let result = await conec.execute(connection, `SELECT sistema FROM almacen WHERE idAlmacen = ?`, [
+        let result = await conec.execute(connection, `SELECT sistema, predeterminado FROM almacen WHERE idAlmacen = ?`, [
             req.query.idAlmacen
         ]);
 
@@ -248,9 +253,35 @@ router.delete('/delete', async function (req, res) {
     }
 });
 
+router.post('/predeterminado', async (req, res) => {
+    let connection = null;
+    try {
+        
+        connection = await conec.beginTransaction();
+
+        await conec.execute(connection, `UPDATE almacen SET 
+            predeterminado=0
+            WHERE predeterminado=1`);
+
+        await conec.execute(connection, `UPDATE almacen SET 
+            predeterminado=1
+            WHERE idAlmacen=?`, [
+            req.body.idAlmacen
+        ]);
+
+        await conec.commit(connection);
+        res.status(200).send('Datos actulizados correctamente');
+    } catch (error) {
+        if (connection != null) {
+            await conec.rollback(connection);
+        }
+        res.status(500).send("Error interno de conexión, intente nuevamente.");
+    }
+});
+
 router.get('/listcomboventa', async function (req, res) {
     try {
-        let result = await conec.query(`SELECT idAlmacen, nombre, tipo FROM almacen WHERE tipo=1`)
+        let result = await conec.query(`SELECT idAlmacen, nombre, tipo, predeterminado FROM almacen WHERE tipo=1`)
         res.status(200).send(result)
     } catch (error) {
         res.status(500).send("Error interno de conexión, intente nuevamente.")
@@ -259,7 +290,7 @@ router.get('/listcomboventa', async function (req, res) {
 
 router.get('/listcomboprodconsumo', async function (req, res) {
     try {
-        let result = await conec.query(`SELECT idAlmacen, nombre, tipo FROM almacen WHERE tipo<>1`)
+        let result = await conec.query(`SELECT idAlmacen, nombre, tipo, predeterminado FROM almacen WHERE tipo<>1`)
         res.status(200).send(result)
     } catch (error) {
         res.status(500).send("Error interno de conexión, intente nuevamente.")
@@ -268,7 +299,7 @@ router.get('/listcomboprodconsumo', async function (req, res) {
 
 router.get('/listcomboall', async function (req, res) {
     try {
-        let result = await conec.query(`SELECT idAlmacen, nombre, tipo FROM almacen`)
+        let result = await conec.query(`SELECT idAlmacen, nombre, tipo, predeterminado FROM almacen`)
         res.status(200).send(result)
     } catch (error) {
         res.status(500).send("Error interno de conexión, intente nuevamente.")

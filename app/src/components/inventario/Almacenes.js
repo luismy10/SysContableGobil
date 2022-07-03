@@ -360,6 +360,37 @@ class Almacenes extends React.Component {
         })
     }
 
+    updatePredeterminado = async (id, predeterminado) => {
+
+        if(predeterminado === 1){
+            ModalAlertSuccess("Almacen", "Este almacen ya es predeterminado", (event)=>{});
+            return;
+        } 
+
+        ModalAlertDialog("Almacen", `¿Estás seguro de actulizar a predeterminado el almacen`, async (event) => {
+            if (event) {
+                try {
+                    ModalAlertInfo("Almacen", "Procesando información...");
+
+                    let result = await axios.post("/api/almacen/predeterminado", {
+                        "idAlmacen": id
+                    })
+
+                    ModalAlertSuccess("Almacen", result.data, () => {
+                        this.loadInit();
+                    });
+
+                } catch (error) {
+                    if (error.response !== undefined) {
+                        ModalAlertWarning("Almacen", error.response.data)
+                    } else {
+                        ModalAlertWarning("Almacen", "Se genero un error interno, intente nuevamente.")
+                    }
+                }
+            }
+        })
+    }
+
     render() {
         return (
             <>
@@ -520,12 +551,12 @@ class Almacenes extends React.Component {
                     <div className="col-md-6 col-sm-12">
                         <div className="form-group">
                             <div className="form-group">
-                                <button className="btn btn-outline-info btn-sm" onClick={() => this.openModal(this.state.idAlmacen, 'nuevo')}>
-                                    <i className="bi bi-file-plus"></i> Nuevo Registro
-                                </button>
-                                {" "}
                                 <button className="btn btn-outline-secondary btn-sm" title="Recargar" onClick={() => this.loadInit()}>
                                     <i className="bi bi-arrow-clockwise"></i>
+                                </button>
+                                {" "}
+                                <button className="btn btn-outline-info btn-sm" onClick={() => this.openModal(this.state.idAlmacen, 'nuevo')}>
+                                    <i className="bi bi-file-plus"></i> Nuevo Registro
                                 </button>
                             </div>
                         </div>
@@ -540,10 +571,10 @@ class Almacenes extends React.Component {
                                     <tr>
                                         <th width="5%" className="p-1">#</th>
                                         <th width="25%" className="p-1">Tipo</th>
-                                        <th width="30%" className="p-1">Nombre</th>
-                                        <th width="30%" className="p-1">Dirección</th>
-                                        {/* <th width="10%" className="p-1">F/Registro</th> */}
-                                        <th width="10%" className="text-center p-1">Estado</th>
+                                        <th width="25%" className="p-1">Nombre</th>
+                                        <th width="25%" className="p-1">Dirección</th>
+                                        <th width="10%" className="p-1">Estado</th>
+                                        <th width="10%" className="p-1">Predeterminado</th>
                                         <th width="auto" className="text-center p-1">Acciones</th>
                                     </tr>
                                 </thead>
@@ -551,13 +582,13 @@ class Almacenes extends React.Component {
                                     {
                                         this.state.loading ? (
                                             <tr>
-                                                <td className="text-center p-1" colSpan="6">
+                                                <td className="text-center p-1" colSpan="7">
                                                     {spinnerLoading()}
                                                 </td>
                                             </tr>
                                         ) : this.state.lista.length === 0 ? (
                                             <tr className="text-center">
-                                                <td className="p-1" colSpan="6">¡No hay datos registrados!</td>
+                                                <td className="p-1" colSpan="7">¡No hay datos registrados!</td>
                                             </tr>
                                         ) :
 
@@ -575,11 +606,15 @@ class Almacenes extends React.Component {
                                                             </td>
                                                             <td className="p-1">{item.nombre}</td>
                                                             <td className="p-1">{item.direccion}</td>
-                                                            {/* <td className="p-1">{item.fecha}</td> */}
                                                             <td className="text-center p-1">
                                                                 <div className={`badge ${item.estado === 1 ? "badge-info" : "badge-danger"}`}>
                                                                     {item.estado === 1 ? "ACTIVO" : "INACTIVO"}
                                                                 </div>
+                                                            </td>
+                                                            <td className="text-center p-1">
+                                                                <span role="button" onClick={() => this.updatePredeterminado(item.idAlmacen, item.predeterminado)}>
+                                                                    <i className={`bi ${item.predeterminado === 1 ? 'bi-toggle-on text-primary' : 'bi-toggle-off text-secondary'} h4`}></i>
+                                                                </span>
                                                             </td>
                                                             <td className="p-1">
                                                                 <div className="d-flex">

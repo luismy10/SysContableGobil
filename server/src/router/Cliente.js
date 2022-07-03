@@ -37,7 +37,7 @@ router.get('/id', async function (req, res) {
 });
 
 router.post('/update', async function (req, res) {
-    const result = await cliente.add(req)
+    const result = await cliente.update(req)
     if (result === 'update') {
         res.status(201).send("Se actualizó correctamente el cliente.");
     } else {
@@ -54,10 +54,41 @@ router.delete('/', async function (req, res) {
     }
 });
 
+router.post('/predeterminado', async (req, res) => {
+    const result = await cliente.updatePredeterminado(req)
+    if (result === 'predeterminado') {
+        res.status(201).send("Se actualizó correctamente a preterminado el cliente.");
+    } else {
+        res.status(500).send(result);
+    }
+});
+
 router.get('/listcombo', async function (req, res) {
     const result = await cliente.listcombo(req)
     if (Array.isArray(result)) {
-        res.status(201).send(result);
+        res.status(200).send(result);
+    } else {
+        res.status(500).send(result);
+    }
+});
+
+router.get('/clientepredeterminado', async function (req, res) {
+    const result = await cliente.clientePredeterminado()
+    if (typeof result === 'object') {
+        res.status(200).send(result);
+    } else if(result === false) {
+        res.status(200).send(result);
+    } else {
+        res.status(500).send(result);
+    }
+});
+
+router.get('/consultadocumento', async function (req, res) {
+    const result = await cliente.consultaDocumento(req)
+    if (typeof result === 'object') {
+        res.status(200).send(result);
+    } else if(result === false) {
+        res.status(200).send(result);
     } else {
         res.status(500).send(result);
     }

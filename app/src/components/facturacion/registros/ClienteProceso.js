@@ -51,7 +51,6 @@ class ClienteProceso extends React.Component {
         this.refDocumento = React.createRef();
         this.refInformacion = React.createRef();
         this.refCelular = React.createRef();
-        this.refGenero = React.createRef();
 
         this.refDireccion = React.createRef();
         this.refUbigeo = React.createRef();
@@ -179,12 +178,6 @@ class ClienteProceso extends React.Component {
             return;
         }
 
-        if (this.state.genero === "") {
-            this.setState({ messageWarning: "Seleccione un genero." });
-            this.onFocusTab("datos-tab", "datos");
-            this.refGenero.current.focus();
-            return;
-        }
 
         try {
             ModalAlertInfo("Cliente", "Procesando información...");
@@ -392,7 +385,7 @@ class ClienteProceso extends React.Component {
                                                 <div className="form-group col-md-6">
                                                     <label>Tipo Documento <i className="fa fa-asterisk text-danger small"></i></label>
                                                     <select
-                                                        className="form-control"
+                                                        className="form-control form-control-sm"
                                                         value={this.state.idTipoDocumento}
                                                         ref={this.refTipoDocumento}
                                                         onChange={(event) => {
@@ -419,7 +412,7 @@ class ClienteProceso extends React.Component {
 
                                                 <div className="form-group col-md-6">
                                                     <label>N° de documento <i className="fa fa-asterisk text-danger small"></i></label>
-                                                    <div className="input-group">
+                                                    <div className="input-group input-group-sm">
                                                         <input
                                                             type="text"
                                                             className="form-control"
@@ -442,7 +435,7 @@ class ClienteProceso extends React.Component {
                                                             placeholder='00000000' />
                                                         <div className="input-group-append">
                                                             <button
-                                                                className="btn btn-outline-secondary"
+                                                                className="btn btn-outline-secondary btn-sm"
                                                                 type="button"
                                                                 title="Reniec"
                                                                 onClick={() => this.onEventGetApiReniec()}>
@@ -451,7 +444,7 @@ class ClienteProceso extends React.Component {
                                                         </div>
                                                         <div className="input-group-append">
                                                             <button
-                                                                className="btn btn-outline-secondary"
+                                                                className="btn btn-outline-secondary btn-sm"
                                                                 type="button"
                                                                 title="Sunat"
                                                                 onClick={() => this.onEventGetApiSunat()}>
@@ -466,7 +459,7 @@ class ClienteProceso extends React.Component {
                                                 <label>Razón Social/Apellidos y Nombres <i className="fa fa-asterisk text-danger small"></i></label>
                                                 <input
                                                     type="text"
-                                                    className="form-control"
+                                                    className="form-control form-control-sm"
                                                     value={this.state.informacion}
                                                     onChange={(event) => {
                                                         if (event.target.value.trim().length > 0) {
@@ -484,23 +477,22 @@ class ClienteProceso extends React.Component {
                                                     placeholder='Ingrese la razón social o apellidos y nombres' />
                                             </div>
 
-                                            <div className="form-group">
-                                                <label>Fecha de Nacimiento</label>
-                                                <input
-                                                    type="date"
-                                                    className="form-control"
-                                                    ref={this.refFechaNacimiento}
-                                                    value={this.state.fechaNacimiento}
-                                                    onChange={(event) => this.setState({ fechaNacimiento: event.target.value })}
-                                                />
-                                            </div>
-
                                             <div className="form-row">
-                                                <div className="form-group col-md-6">
-                                                    <label>Genero <i className="fa fa-asterisk text-danger small"></i></label>
+                                                <div className="form-group col-md-4">
+                                                    <label>Fecha de Nacimiento</label>
+                                                    <input
+                                                        type="date"
+                                                        className="form-control form-control-sm"
+                                                        ref={this.refFechaNacimiento}
+                                                        value={this.state.fechaNacimiento}
+                                                        onChange={(event) => this.setState({ fechaNacimiento: event.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div className="form-group col-md-4">
+                                                    <label>Genero</label>
                                                     <select
-                                                        className="form-control"
-                                                        ref={this.refGenero}
+                                                        className="form-control form-control-sm"
                                                         value={this.state.genero}
                                                         onChange={(event) => this.setState({ genero: event.target.value })}>
                                                         <option value="">-- Seleccione --</option>
@@ -509,10 +501,10 @@ class ClienteProceso extends React.Component {
                                                     </select>
                                                 </div>
 
-                                                <div className="form-group col-md-6">
+                                                <div className="form-group col-md-4">
                                                     <label>Estado Civil</label>
                                                     <select
-                                                        className="form-control"
+                                                        className="form-control form-control-sm"
                                                         value={this.state.estadoCivil}
                                                         onChange={(event) => this.setState({ estadoCivil: event.target.value })}>
                                                         <option value="">-- seleccione --</option>
@@ -528,14 +520,14 @@ class ClienteProceso extends React.Component {
                                                 <label>Observación</label>
                                                 <input
                                                     type="text"
-                                                    className="form-control"
+                                                    className="form-control form-control-sm"
                                                     value={this.state.observacion}
                                                     onChange={(event) => this.setState({ observacion: event.target.value })}
                                                     placeholder='Ingrese alguna observación' />
                                             </div>
 
                                             <div className="form-group">
-                                                <label>Estado:</label>
+                                                <label>Estado</label>
                                                 <div className="custom-control custom-switch">
                                                     <input
                                                         type="checkbox"
@@ -550,47 +542,48 @@ class ClienteProceso extends React.Component {
 
                                         <div className="tab-pane fade" id="contacto" role="tabpanel" aria-labelledby="contacto-tab">
 
-                                            <div className="form-group">
-                                                <label>N° de Celular <i className="fa fa-asterisk text-danger small"></i></label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    value={this.state.celular}
-                                                    ref={this.refCelular}
-                                                    onChange={(event) => {
-                                                        if (event.target.value.trim().length > 0) {
-                                                            this.setState({
-                                                                celular: event.target.value,
-                                                                messageWarning: '',
-                                                            });
-                                                        } else {
-                                                            this.setState({
-                                                                celular: event.target.value,
-                                                                messageWarning: 'Ingrese el número de celular.',
-                                                            });
-                                                        }
-                                                    }}
-                                                    onKeyPress={keyNumberPhone}
-                                                    placeholder='Ingrese el número de celular.' />
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label>N° de Telefono</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    value={this.state.telefono}
-                                                    ref={this.refTelefono}
-                                                    onChange={(event) => this.setState({ telefono: event.target.value, })}
-                                                    onKeyPress={keyNumberPhone}
-                                                    placeholder='Ingrese el número de telefono.' />
+                                            <div className="form-row">
+                                                <div className="form-group col-md-6">
+                                                    <label>N° de Celular <i className="fa fa-asterisk text-danger small"></i></label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        value={this.state.celular}
+                                                        ref={this.refCelular}
+                                                        onChange={(event) => {
+                                                            if (event.target.value.trim().length > 0) {
+                                                                this.setState({
+                                                                    celular: event.target.value,
+                                                                    messageWarning: '',
+                                                                });
+                                                            } else {
+                                                                this.setState({
+                                                                    celular: event.target.value,
+                                                                    messageWarning: 'Ingrese el número de celular.',
+                                                                });
+                                                            }
+                                                        }}
+                                                        onKeyPress={keyNumberPhone}
+                                                        placeholder='Ingrese el número de celular.' />
+                                                </div>
+                                                <div className="form-group col-md-6">
+                                                    <label>N° de Telefono</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        value={this.state.telefono}
+                                                        ref={this.refTelefono}
+                                                        onChange={(event) => this.setState({ telefono: event.target.value, })}
+                                                        onKeyPress={keyNumberPhone}
+                                                        placeholder='Ingrese el número de telefono.' />
+                                                </div>
                                             </div>
 
                                             <div className="form-group">
                                                 <label>E-Mail</label>
                                                 <input
                                                     type="email"
-                                                    className="form-control"
+                                                    className="form-control form-control-sm"
                                                     value={this.state.email}
                                                     onChange={(event) => this.setState({ email: event.target.value })}
                                                     placeholder='Ingrese el email' />
@@ -600,7 +593,7 @@ class ClienteProceso extends React.Component {
                                                 <label>Dirección</label>
                                                 <input
                                                     type="text"
-                                                    className="form-control"
+                                                    className="form-control form-control-sm "
                                                     value={this.state.direccion}
                                                     ref={this.refDireccion}
                                                     onChange={(event) => this.setState({ direccion: event.target.value })}

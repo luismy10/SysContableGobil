@@ -5,7 +5,8 @@ import {
     ModalAlertInfo,
     ModalAlertSuccess,
     ModalAlertWarning,
-    ModalAlertDialog
+    ModalAlertDialog,
+    numberFormat
 } from '../tools/Tools';
 import Paginacion from '../tools/Paginacion';
 
@@ -196,12 +197,12 @@ class Productos extends React.Component {
                     <div className="col-md-6 col-sm-12">
                         <div className="form-group">
                             <div className="form-group">
-                                <button className="btn btn-outline-info btn-sm" onClick={() => this.onEventAdd()}>
-                                    <i className="bi bi-file-plus"></i> Nuevo Registro
-                                </button>
-                                {" "}
                                 <button className="btn btn-outline-secondary btn-sm" title="Recargar" onClick={() => this.loadInit()}>
                                     <i className="bi bi-arrow-clockwise"></i>
+                                </button>
+                                {" "}
+                                <button className="btn btn-outline-info btn-sm" onClick={() => this.onEventAdd()}>
+                                    <i className="bi bi-file-plus"></i> Nuevo Registro
                                 </button>
                             </div>
                         </div>
@@ -247,8 +248,8 @@ class Productos extends React.Component {
                                                                 {item.codigo}<br />
                                                                 {item.nombre}
                                                             </td>
-                                                            <td className="p-1">{item.costo}</td>
-                                                            <td className="p-1">100</td>
+                                                            <td className="p-1">{numberFormat(item.costo)}</td>
+                                                            <td className="p-1">{numberFormat(item.precio)}</td>
                                                             <td className="p-1">{item.impuesto}</td>
                                                             <td className="p-1">{item.cantidad}<br />{item.medida}</td>
                                                             <td className="p-1">{item.almacen}</td>

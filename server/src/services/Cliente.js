@@ -14,7 +14,8 @@ class Cliente {
             c.celular,
             c.telefono,
             c.direccion,
-            c.estado
+            c.estado,
+            c.predeterminado
             FROM cliente AS c
             INNER JOIN tipoDocumento AS td ON td.idTipoDocumento = c.idTipoDocumento
             WHERE 
@@ -76,6 +77,7 @@ class Cliente {
 
             let result = await conec.execute(connection, 'SELECT idCliente FROM cliente');
             let idCliente = "";
+            let predeterminado = '';
             if (result.length != 0) {
 
                 let quitarValor = result.map(function (item) {
@@ -96,8 +98,10 @@ class Cliente {
                 }
 
                 idCliente = codigoGenerado;
+                predeterminado = 0;
             } else {
                 idCliente = "CL0001";
+                predeterminado = 1;
             }
 
             await conec.execute(connection, `INSERT INTO cliente(
@@ -115,10 +119,13 @@ class Cliente {
             estadoCivil,
             estado, 
             observacion,
+            predeterminado,
             fecha,
             hora,
+            fupdate,
+            hupdate,
             idUsuario)
-            VALUES(?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+            VALUES(?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
                 idCliente,
                 req.body.idTipoDocumento,
                 req.body.documento,
@@ -133,6 +140,9 @@ class Cliente {
                 req.body.estadoCivil,
                 req.body.estado,
                 req.body.observacion,
+                predeterminado,
+                currentDate(),
+                currentTime(),
                 currentDate(),
                 currentTime(),
                 req.body.idUsuario,
@@ -157,7 +167,7 @@ class Cliente {
             cl.informacion,
             cl.celular,
             cl.telefono, 
-            DATE_FORMAT(cl.fechaNacimiento,'%d/%m/%Y') as fecha,
+            DATE_FORMAT(cl.fechaNacimiento,'%Y-%m-%d') as fechaNacimiento,
             cl.email, 
             cl.genero,  
             cl.direccion,
@@ -280,10 +290,92 @@ class Cliente {
         }
     }
 
+    async updatePredeterminado(req) {
+        let connection = null;
+        try {
+
+            connection = await conec.beginTransaction();
+
+            await conec.execute(connection, `UPDATE cliente SET 
+            predeterminado=0
+            WHERE predeterminado=1`);
+
+            await conec.execute(connection, `UPDATE cliente SET 
+            predeterminado=1
+            WHERE idCliente=?`, [
+                req.body.idCliente
+            ]);
+
+            await conec.commit(connection);
+
+            return "predeterminado"
+
+        } catch (error) {
+            if (connection != null) {
+                await conec.rollback(connection);
+            }
+            return "Se produjo un error de servidor, intente nuevamente.";
+        }
+    }
+
     async listcombo(req) {
         try {
-            let result = await conec.query('SELECT idCliente, documento, informacion FROM cliente');
+            let result = await conec.query(`SELECT 
+                idCliente, 
+                documento, 
+                informacion FROM cliente`);
             return result;
+        } catch (error) {
+            return "Se produjo un error de servidor, intente nuevamente.";
+        }
+    }
+
+    async clientePredeterminado(){
+        try {
+            let result = await conec.query(`SELECT 
+            cl.idCliente, 
+            cl.documento AS numeroDoc, 
+            cl.informacion,
+            cl.direccion,
+            cl.predeterminado,
+            td.nombre AS nombreDoc
+            FROM cliente AS cl
+            INNER JOIN tipoDocumento AS td ON td.idTipoDocumento = cl.idTipoDocumento
+            WHERE predeterminado = 1`);
+
+            if (result.length > 0) {
+                return result[0];
+            } else {
+                return false
+            }
+    
+        } catch (error) {
+            return "Se produjo un error de servidor, intente nuevamente.";
+        }
+    }
+
+    async consultaDocumento(req) {
+
+        try {
+            let result = await conec.query(`SELECT 
+                cl.idCliente, 
+                cl.documento AS numeroDoc, 
+                cl.informacion,
+                cl.direccion,
+                td.nombre AS nombreDoc
+                FROM cliente AS cl
+                INNER JOIN tipoDocumento AS td ON td.idTipoDocumento = cl.idTipoDocumento
+                WHERE cl.documento = ?`, [
+                req.query.documento
+            ]
+            );
+
+            if (result.length > 0) {
+                return result[0];
+            } else {
+                return false
+            }
+
         } catch (error) {
             return "Se produjo un error de servidor, intente nuevamente.";
         }
@@ -318,10 +410,10 @@ class Cliente {
         }
     }
 
-    async listapagos(req){
-        try{           
+    async listapagos(req) {
+        try {
 
-            if(req.query.idCliente !== ""){
+            if (req.query.idCliente !== "") {
                 let lista = await conec.query(`SELECT 
                 c.idCobro, 
                 co.nombre as comprobante,
@@ -348,12 +440,12 @@ class Cliente {
                 LEFT JOIN comprobante AS cp ON v.idComprobante = cp.idComprobante
                 WHERE c.idCliente = ?
                 GROUP BY c.idCobro
-                ORDER BY c.fecha DESC,c.hora DESC`,[
-                    req.query.idCliente 
+                ORDER BY c.fecha DESC,c.hora DESC`, [
+                    req.query.idCliente
                 ]);
-    
+
                 return lista;
-            }else{
+            } else {
                 let lista = await conec.query(`SELECT
                 c.idCliente,
                 c.documento,
@@ -363,15 +455,15 @@ class Cliente {
                 FROM cobro AS co
                 INNER JOIN cliente AS c ON c.idCliente = co.idCliente
                 WHERE 
-                co.fecha BETWEEN ? AND ?`,[
+                co.fecha BETWEEN ? AND ?`, [
                     req.query.fechaIni,
                     req.query.fechaFin,
                     ,
                 ]);
-    
+
                 return lista;
-            }            
-        }catch (error) {
+            }
+        } catch (error) {
             return "Se produjo un error de servidor, intente nuevamente.";
         }
     }

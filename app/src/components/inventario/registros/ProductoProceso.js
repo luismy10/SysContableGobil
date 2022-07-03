@@ -144,7 +144,9 @@ class ProductoProceso extends React.Component {
                 }
             });
 
-            const data = producto.data;
+            const data = producto.data.product;
+
+            const allPrices = producto.data.prices;
 
             const almacenVenta = await axios.get("/api/almacen/listcomboventa", {
                 signal: this.abortControllerView.signal,
@@ -182,6 +184,9 @@ class ProductoProceso extends React.Component {
                 idCategoria: data.categoria,
                 idMarca: data.marca,
                 descripcion: data.descripcion,
+
+                precio: data.precio,
+                precioCheck: parseInt(allPrices) > 1 ? true : false,
 
                 loading: false
             })

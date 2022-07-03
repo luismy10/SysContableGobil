@@ -198,7 +198,7 @@ class ModalMedida extends React.Component {
 
                             <div className="form-row">
                                 <div className="table-responsive">
-                                    <table className="table table-striped table-bordered rounded">
+                                    <table className="table table-striped table-hover table-bordered rounded">
                                         <thead>
                                             <tr>
                                                 <th width="5%" className="p-1">#</th>

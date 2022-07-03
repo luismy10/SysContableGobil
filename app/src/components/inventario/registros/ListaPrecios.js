@@ -2,12 +2,7 @@ import React from 'react';
 import axios from 'axios';
 import {
     spinnerLoading,
-    // ModalAlertInfo,
-    // ModalAlertSuccess,
-    // ModalAlertWarning,
     keyNumberFloat,
-    // showModal,
-    // hideModal,
     isNumeric
 } from '../../tools/Tools';
 
@@ -61,16 +56,7 @@ class ListaPrecios extends React.Component {
         try {
             await this.setStateAsync({ loading: true })
 
-            // const medida = await axios.get("/api/producto/listmedida", {
-            //     signal: this.abortControllerModal.signal,
-            //     params: {
-            //         "opcion": opcion,
-            //         "buscar": buscar
-            //     }
-            // });
-
             await this.setStateAsync({
-                // detalleMedidas: medida.data,
                 loading: false,
                 msgList: 'Cargando datos...',
                 msgWarning: '',
@@ -96,8 +82,6 @@ class ListaPrecios extends React.Component {
                 }
             });
 
-            console.log(precio.data)
-
             await this.setStateAsync({
                 priceList: precio.data,
 
@@ -106,12 +90,15 @@ class ListaPrecios extends React.Component {
                 msgWarning: '',
             })
 
+            this.currentListPrice(this.state.priceList);
+
         } catch (error) {
             if (error.message !== "canceled") {
                 await this.setStateAsync({
                     msgList: "Se produjo un error un interno, intente nuevamente."
                 });
             }
+            console.log(error.message)
         }
     }
 
@@ -149,8 +136,7 @@ class ListaPrecios extends React.Component {
     }
 
     handleSelectNombre = async (event, idPrecio) => {
-        // const {listPricesOk} = this.props;
-    
+
         let updatedList = [...this.state.priceList];
         for (let item of updatedList) {
             if (item.idPrecio === idPrecio) {
@@ -158,7 +144,6 @@ class ListaPrecios extends React.Component {
                 await this.setStateAsync({
                     msgWarning: event.target.value === '' ? 'Hay detalle(s) en la tabla con nombre vacio.' : ''
                 })
-                // listPricesOk(event.target.value === '' ? false : true)
                 break;
             }
         }
@@ -194,74 +179,6 @@ class ListaPrecios extends React.Component {
         }
         await this.setStateAsync({ priceList: updatedList })
         this.currentListPrice(this.state.priceList);
-    }
-
-    //Validacines 
-    validateEmptys = async () => {
-        await this.validateEmptyFieldsName();
-        await this.validateEmptyFieldsValue();
-        await this.validateEmptyFieldsFactor();
-    }
-
-    async validateEmptyFieldsName() {
-
-        let validate = this.state.priceList.reduce((acumulador, item) =>
-            item.nombrePrecio === "" ? acumulador + 1 : acumulador + 0
-            , 0);
-
-        if (validate > 0) {
-            await this.setStateAsync({ msgWarning: "Hay detalle(s) en la tabla con nombre vacio." });
-            let count = 0;
-            for (let item of this.state.priceList) {
-                count++;
-                if (item.nombrePrecio === "") {
-                    document.getElementById(count + "imc").focus()
-                }
-            }
-            return;
-        } else {
-            await this.setStateAsync({ msgWarning: "" });
-        }
-    }
-
-    async validateEmptyFieldsValue() {
-        let validate = this.state.priceList.reduce((acumulador, item) =>
-            item.valor === "" || !isNumeric(item.valor.toString()) ? acumulador + 1 : acumulador + 0
-            , 0);
-
-        if (validate > 0) {
-            await this.setStateAsync({ msgWarning: "Hay detalle(s) en la tabla sin precio numérico." });
-            let count = 0;
-            for (let item of this.state.priceList) {
-                count++;
-                if (item.valor === "") {
-                    document.getElementById(count + "imd").focus()
-                }
-            }
-            return;
-        } else {
-            await this.setStateAsync({ msgWarning: "" });
-        }
-    }
-
-    async validateEmptyFieldsFactor() {
-        let validate = this.state.priceList.reduce((acumulador, item) =>
-            item.factor === "" || !isNumeric(item.factor.toString()) ? acumulador + 1 : acumulador + 0
-            , 0);
-
-        if (validate > 0) {
-            await this.setStateAsync({ msgWarning: "Hay detalle(s) en la tabla sin cantidad numérica." });
-            let count = 0;
-            for (let item of this.state.priceList) {
-                count++;
-                if (item.factor === "") {
-                    document.getElementById(count + "ime").focus()
-                }
-            }
-            return;
-        } else {
-            await this.setStateAsync({ msgWarning: "" });
-        }
     }
 
     render() {

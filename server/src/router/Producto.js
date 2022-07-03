@@ -20,17 +20,21 @@ router.get('/list', async function (req, res) {
         cant.cantidad,
         med.nombre AS medida,
 
-        al.nombre AS almacen
+        al.nombre AS almacen,
+
+        prec.valor AS precio
         
         FROM producto AS prod
         INNER JOIN impuesto AS imp ON prod.idImpuesto = imp.idImpuesto
         INNER JOIN medida AS med ON prod.idMedida = med.idMedida
         LEFT JOIN almacen AS al ON prod.idAlmacen = al.idAlmacen
         LEFT JOIN cantidad AS cant ON cant.idProducto = prod.idProducto
+        LEFT JOIN precio AS prec ON prod.idProducto = prec.idProducto
+        
         WHERE 
-        ? = 0
+        ? = 0 AND prec.tipo = 1
         OR
-        ? = 1 AND prod.nombre LIKE CONCAT(?,'%')
+        ? = 1 AND prod.nombre LIKE CONCAT(?,'%') AND prec.tipo = 1
         LIMIT ?,?`, [
             parseInt(req.query.opcion),
 
@@ -149,10 +153,12 @@ router.post('/add', async function (req, res) {
                 nombre,
                 valor,
                 factor,
-                estado) values(?,?,?,?,?)`, [
+                tipo,
+                estado) values(?,?,?,?,?,?)`, [
                 idProducto,
                 "PRECIO GENERAL",
                 parseFloat(req.body.precio),
+                1,
                 1,
                 1
             ]);
@@ -163,10 +169,12 @@ router.post('/add', async function (req, res) {
                 nombre,
                 valor,
                 factor,
-                estado) values(?,?,?,?,?)`, [
+                tipo,
+                estado) values(?,?,?,?,?,?)`, [
                 idProducto,
                 "PRECIO GENERAL",
                 parseFloat(req.body.precio),
+                1,
                 1,
                 1
             ]);
@@ -177,11 +185,13 @@ router.post('/add', async function (req, res) {
                     nombre,
                     valor,
                     factor,
-                    estado) values(?,?,?,?,?)`, [
+                    tipo,
+                    estado) values(?,?,?,?,?,?)`, [
                     idProducto,
-                    item.nombrePrecio,
+                    item.nombrePrecio.toUpperCase(),
                     parseFloat(item.valor),
                     parseFloat(item.factor),
+                    0,
                     1
                 ]);
             }
@@ -229,15 +239,26 @@ router.get('/id', async function (req, res) {
         prod.estado,
         prod.categoria,
         prod.marca,
-        prod.descripcion
+        prod.descripcion,
+        prec.valor AS precio
         FROM producto AS prod
         INNER JOIN medida AS med ON prod.idMedida=med.idMedida
-        WHERE idProducto=?`, [
+        INNER JOIN precio AS prec ON prod.idProducto=prec.idProducto
+        WHERE prod.idProducto=? AND prec.tipo=1`, [
             req.query.idProducto
         ]);
 
         if (result.length > 0) {
-            res.status(200).send(result[0]);
+
+            //Contar cuantos precios tiene el producto
+            let prices = await conec.query(`SELECT 
+            COUNT(*) AS total
+            FROM precio
+            WHERE idProducto=?`, [
+                req.query.idProducto
+            ])
+
+            res.status(200).send({"product": result[0], "prices": prices[0].total });
         } else {
             res.status(400).send("Datos no encontrados");
         }
@@ -311,10 +332,12 @@ router.post('/update', async function (req, res) {
                nombre,
                valor,
                factor,
-               estado) values(?,?,?,?,?)`, [
-                idProducto,
+               tipo,
+               estado) values(?,?,?,?,?,?)`, [
+                req.body.idProducto,
                 "PRECIO GENERAL",
                 parseFloat(req.body.precio),
+                1,
                 1,
                 1
             ]);
@@ -325,10 +348,12 @@ router.post('/update', async function (req, res) {
                nombre,
                valor,
                factor,
-               estado) values(?,?,?,?,?)`, [
-                idProducto,
+               tipo,
+               estado) values(?,?,?,?,?,?)`, [
+                req.body.idProducto,
                 "PRECIO GENERAL",
                 parseFloat(req.body.precio),
+                1,
                 1,
                 1
             ]);
@@ -339,11 +364,13 @@ router.post('/update', async function (req, res) {
                    nombre,
                    valor,
                    factor,
-                   estado) values(?,?,?,?,?)`, [
-                    idProducto,
-                    item.nombrePrecio,
+                   tipo,
+                   estado) values(?,?,?,?,?,?)`, [
+                    req.body.idProducto,
+                    item.nombrePrecio.toUpperCase(),
                     parseFloat(item.valor),
                     parseFloat(item.factor),
+                    0,
                     1
                 ]);
             }
@@ -527,22 +554,26 @@ router.get('/listprodalmacen', async function (req, res) {
         prod.nombre,
         prod.costo,
 
+        imp.idImpuesto,
         imp.nombre AS impuesto,
         
         cant.cantidad,
         med.nombre AS medida,
 
-        al.nombre AS almacen
+        al.nombre AS almacen,
+
+        prec.valor AS precio
         
         FROM producto AS prod
         INNER JOIN impuesto AS imp ON prod.idImpuesto = imp.idImpuesto
         INNER JOIN medida AS med ON prod.idMedida = med.idMedida
         LEFT JOIN almacen AS al ON prod.idAlmacen = al.idAlmacen
         LEFT JOIN cantidad AS cant ON cant.idProducto = prod.idProducto
+        LEFT JOIN precio as prec ON prod.idProducto = prec.idProducto
         WHERE 
-        ? = 0 AND al.idAlmacen=?
+        ? = 0 AND al.idAlmacen=? AND prec.tipo=1
         OR
-        ? = 1 AND prod.nombre LIKE CONCAT(?,'%') AND al.idAlmacen=?
+        ? = 1 AND prod.nombre LIKE CONCAT(?,'%') AND al.idAlmacen=? AND prec.tipo=1
         LIMIT ?,?`, [
             parseInt(req.query.opcion),
             req.query.idAlmacen,
@@ -586,5 +617,31 @@ router.get('/listprodalmacen', async function (req, res) {
         res.status(500).send("Error interno de conexión, intente nuevamente.");
     }
 });
+
+//Lista de precios
+router.get('/listprices/', async function(req, res) {
+    try {
+        let lista = await conec.query(`SELECT 
+        nombre AS nombrePrecio,
+        valor,
+        factor
+        FROM precio
+        WHERE idProducto=? AND tipo=0`, [
+            req.query.idProducto,
+        ]);
+
+        let resultLista = lista.map(function (item, index) {
+            return {
+                ...item,
+                idPrecio: (index + 1)
+            }
+        });
+
+        res.status(200).send(resultLista)
+
+    } catch (error) {
+        res.status(500).send("Error interno de conexión, intente nuevamente.");
+    }
+})
 
 module.exports = router;
